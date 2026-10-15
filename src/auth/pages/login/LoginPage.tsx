@@ -8,11 +8,13 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { useAuthStore } from '@/auth/store/auth.store';
 import soloAireLogoDark from '@/assets/SOLO_AIRE_LOGO_DARK_THEME.png';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage = () => {
   const { login } = useAuthStore();
   const navigate = useNavigate();
   const [isPosting, setIsPosting] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,12 +73,20 @@ export const LoginPage = () => {
                 </div>
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'password' : 'text'}
                   name="password"
                   placeholder="••••••••"
                   className="rounded-xl h-11 px-3.5 focus-visible:ring-primary/40"
                   required
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff /> : <Eye />}
+                </Button>
               </div>
 
               <Button

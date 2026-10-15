@@ -118,7 +118,7 @@ export const appRouter = createBrowserRouter([
         element: (
           <ModulePlaceholder
             title="Finanzas"
-            description="Control de finanzas."
+            description="Supervisión integral de rentabilidad, desglose por línea de negocio, cálculo de IVA diferencial y productos más exitosos."
           />
         ),
       },

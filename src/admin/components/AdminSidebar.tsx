@@ -62,7 +62,7 @@ export const AdminSidebar = ({ isOpen }: Props) => {
       label: 'Finanzas',
       to: '/admin/finanzas',
       icon: CircleDollarSign,
-      description: 'Control de finanzas',
+      description: 'Supervisión integral de rentabilidad, desglose por línea de negocio, cálculo de IVA diferencial y productos más exitosos.',
     },
   ];
 
