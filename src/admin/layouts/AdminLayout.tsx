@@ -8,18 +8,18 @@ export const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors">
-      {/* Header superior */}
+      {/* Header superior fijo con blur y borde sutil */}
       <AdminHeader
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
       />
 
-      {/* Contenedor central: Sidebar a la izquierda + Outlet a la derecha */}
+      {/* Contenedor central */}
       <div className="flex-1 flex overflow-hidden">
         <AdminSidebar isOpen={isSidebarOpen} />
 
-        {/* Área del Outlet con scroll independiente */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-muted/20">
+        {/* Área del Outlet con scroll independiente y fondo suave */}
+        <main className="flex-1 p-5 md:p-8 lg:p-10 overflow-y-auto bg-muted/30">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
