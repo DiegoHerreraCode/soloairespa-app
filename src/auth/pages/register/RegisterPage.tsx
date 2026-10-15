@@ -150,11 +150,11 @@ export const RegisterPage = () => {
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20 mb-6 shadow-lg">
                 <img
                   src={soloAireLogoDark}
-                  alt="Solo Aire SpA"
+                  alt="SoloAireSPA"
                   className="h-24 w-auto object-contain drop-shadow-md"
                 />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight mb-2">Únete a Solo Aire SpA</h2>
+              <h2 className="text-2xl font-bold tracking-tight mb-2">Únete a SoloAireSPA</h2>
               <p className="text-sm text-slate-300 max-w-xs leading-relaxed">
                 Registra tu perfil para acceder a la gestión de órdenes de trabajo, inventarios y cotizaciones.
               </p>
