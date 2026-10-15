@@ -7,6 +7,7 @@ import {
   ShoppingCart,
   Boxes,
   UserCog,
+  CircleDollarSign,
 } from 'lucide-react';
 
 interface Props {
@@ -57,15 +58,20 @@ export const AdminSidebar = ({ isOpen }: Props) => {
       icon: UserCog,
       description: 'Administradores y personal técnico',
     },
+    {
+      label: 'Finanzas',
+      to: '/admin/finanzas',
+      icon: CircleDollarSign,
+      description: 'Control de finanzas',
+    },
   ];
 
   return (
     <aside
-      className={`fixed md:static inset-y-0 left-0 z-20 bg-card border-r border-border transition-all duration-300 ease-in-out flex flex-col shadow-xs ${
-        isOpen
-          ? 'w-64 translate-x-0'
-          : 'w-0 -translate-x-full md:w-0 md:translate-x-0 overflow-hidden'
-      }`}
+      className={`fixed md:static inset-y-0 left-0 z-20 bg-card border-r border-border transition-all duration-300 ease-in-out flex flex-col shadow-xs ${isOpen
+        ? 'w-64 translate-x-0'
+        : 'w-0 -translate-x-full md:w-0 md:translate-x-0 overflow-hidden'
+        }`}
     >
       <div className="p-4 border-b border-border/80">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -82,10 +88,9 @@ export const AdminSidebar = ({ isOpen }: Props) => {
               to={item.to}
               end={item.to === '/admin'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-semibold'
-                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground hover:translate-x-0.5'
+                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${isActive
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-semibold'
+                  : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground hover:translate-x-0.5'
                 }`
               }
             >

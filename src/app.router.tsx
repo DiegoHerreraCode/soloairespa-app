@@ -113,6 +113,15 @@ export const appRouter = createBrowserRouter([
           />
         ),
       },
+      {
+        path: 'finanzas', // ruta: admin/finanzas
+        element: (
+          <ModulePlaceholder
+            title="Finanzas"
+            description="Control de finanzas."
+          />
+        ),
+      },
     ],
   },
 
