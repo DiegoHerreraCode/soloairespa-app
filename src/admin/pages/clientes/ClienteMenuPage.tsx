@@ -46,7 +46,7 @@ export const ClienteMenuPage = () => {
 
         {/* Card 2: Ver Listado de Pagos de Clientes */}
         <Link
-          to="/admin/clientes/pagos"
+          to="/admin/clientes/pagos-clientes"
           className="group relative bg-card hover:bg-accent/40 border border-border/80 hover:border-blue-500/50 rounded-2xl p-8 flex flex-col items-center justify-between min-h-[320px] transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer"
         >
           {/* Círculo central con ícono */}

@@ -13,6 +13,8 @@ import { AdministradoresFormPage } from './admin/pages/personal/AdministradoresF
 import { ClienteMenuPage } from './admin/pages/clientes/ClienteMenuPage';
 import { ClientePage } from './admin/pages/clientes/ClientePage';
 import { ClienteFormPage } from './admin/pages/clientes/ClienteFormPage';
+import { PagoClientePage } from './admin/pages/clientes/PagoClientePage';
+import { PagoClienteFormPage } from './admin/pages/clientes/PagoClienteFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -100,6 +102,14 @@ export const appRouter = createBrowserRouter([
           {
             path: 'listado/:id', // ruta: admin/clientes/listado/:id (crear y editar estilo Fernando Herrera con :id = 'new' o id numérico)
             element: <ClienteFormPage />,
+          },
+          {
+            path: 'pagos-clientes', // ruta: admin/clientes/pagos-clientes (Listado con tabla)
+            element: <PagoClientePage />,
+          },
+          {
+            path: 'pagos-clientes/:id', // ruta: admin/clientes/pagos-clientes/:id (crear y editar estilo Fernando Herrera con :id = 'new' o id numérico)
+            element: <PagoClienteFormPage />,
           },
         ],
       },
