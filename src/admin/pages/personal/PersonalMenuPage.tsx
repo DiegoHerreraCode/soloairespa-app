@@ -10,7 +10,7 @@ export const PersonalMenuPage = () => {
           Personal y Administradores
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Control de personal con AdminController y PersonalController.
+          Control de personal.
         </p>
       </div>
 

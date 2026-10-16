@@ -10,6 +10,9 @@ import { PersonalTallerPage } from './admin/pages/personal/PersonalTallerPage';
 import { PersonalTallerFormPage } from './admin/pages/personal/PersonalTallerFormPage';
 import { AdministradoresPage } from './admin/pages/personal/AdministradoresPage';
 import { AdministradoresFormPage } from './admin/pages/personal/AdministradoresFormPage';
+import { ClienteMenuPage } from './admin/pages/clientes/ClienteMenuPage';
+import { ClientePage } from './admin/pages/clientes/ClientePage';
+import { ClienteFormPage } from './admin/pages/clientes/ClienteFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -84,13 +87,21 @@ export const appRouter = createBrowserRouter([
         ),
       },
       {
-        path: 'clientes', // ruta: admin/clientes
-        element: (
-          <ModulePlaceholder
-            title="Clientes y Pagos"
-            description="Gestión de clientes y recaudaciones con ClienteController y PagoClienteController."
-          />
-        ),
+        path: 'clientes',
+        children: [
+          {
+            index: true, // ruta: admin/clientes (Menú de selección con los 2 cards: Clientes y Pagos)
+            element: <ClienteMenuPage />,
+          },
+          {
+            path: 'listado', // ruta: admin/clientes/listado (Listado de clientes)
+            element: <ClientePage />,
+          },
+          {
+            path: 'listado/:id', // ruta: admin/clientes/listado/:id (crear y editar estilo Fernando Herrera con :id = 'new' o id numérico)
+            element: <ClienteFormPage />,
+          },
+        ],
       },
       {
         path: 'compras', // ruta: admin/compras
