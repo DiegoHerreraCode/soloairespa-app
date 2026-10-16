@@ -1,35 +1,238 @@
-import { Link } from 'react-router';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router';
+import {
+  ArrowLeft,
+  Plus,
+  Search,
+  ShieldCheck,
+  Mail,
+  Phone,
+  MapPin,
+  IdCard,
+  Edit2,
+  Filter,
+} from 'lucide-react';
+import { useAdmins } from '../../hooks/useAdmins';
+import type { AdminItem } from '../../interfaces/admin.interface';
 
 export const AdministradoresPage = () => {
+  const navigate = useNavigate();
+  const { admins, isLoading } = useAdmins();
+
+  // Estados de filtrado
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Paginación: Máximo 3 cards por página según la imagen guía
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
+
+  // Filtrado de la lista por nombre, rut, correo, num_tlf y direccion
+  const filteredAdmins = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return admins;
+
+    return admins.filter((a: AdminItem) => {
+      const email = a.user?.email || '';
+      return (
+        a.nombre?.toLowerCase().includes(term) ||
+        a.rut?.toLowerCase().includes(term) ||
+        email.toLowerCase().includes(term) ||
+        a.num_tlf?.toLowerCase().includes(term) ||
+        a.direccion?.toLowerCase().includes(term)
+      );
+    });
+  }, [admins, searchTerm]);
+
+  // Cálculo de páginas
+  const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage) || 1;
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedAdmins = useMemo(() => {
+    const startIndex = (validCurrentPage - 1) * itemsPerPage;
+    return filteredAdmins.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAdmins, validCurrentPage, itemsPerPage]);
+
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Botón Volver y Título */}
-      <div className="flex items-center gap-3">
-        <Link
-          to="/admin/personal"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver
-        </Link>
+      {/* 1. BARRA SUPERIOR: Título, Volver y Nuevo */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-border/80">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-purple-500" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
             Listado de Administradores del Sistema
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Gestión de administradores y credenciales mediante AdminController
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Usuarios con credenciales de acceso y gestión integral de la plataforma
           </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/admin/personal"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Link>
+          <Link
+            to="/admin/personal/administradores/new"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20 transition-all cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo
+          </Link>
         </div>
       </div>
 
-      {/* Contenedor preparado para la tabla / acciones CRUD */}
-      <div className="bg-card p-6 rounded-2xl border border-border/80 shadow-xs">
-        <p className="text-sm text-muted-foreground">
-          Aquí implementaremos la tabla de administradores del sistema (roles, correo, RUT, estado y acciones).
-        </p>
+      {/* 2. OPCIONES DE FILTRADO (Buscador por nombre, rut, correo, num_tlf y direccion) */}
+      <div className="bg-card p-4 rounded-2xl border border-border/80 shadow-xs space-y-3">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Filter className="w-3.5 h-3.5 text-purple-500" />
+          Filtros de Búsqueda
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Buscar por nombre, RUT, correo, teléfono o dirección..."
+            className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all"
+          />
+        </div>
       </div>
+
+      {/* 3. LISTADO DE CARDS (Máximo 3 por página, sin botón de eliminar) */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-card border border-border/80 rounded-2xl p-6 h-80 animate-pulse flex flex-col justify-between"
+            >
+              <div className="w-20 h-20 bg-muted rounded-full mx-auto" />
+              <div className="space-y-2 mt-4">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+                <div className="h-3 bg-muted rounded w-2/3" />
+              </div>
+              <div className="h-8 bg-muted rounded mt-4" />
+            </div>
+          ))}
+        </div>
+      ) : paginatedAdmins.length === 0 ? (
+        <div className="bg-card p-12 rounded-2xl border border-border/80 text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">
+            No se encontraron administradores
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+            No hay administradores que coincidan con la búsqueda ingresada.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedAdmins.map((item: AdminItem) => (
+            <div
+              key={item.id_admin}
+              className="relative bg-card border border-border/80 hover:border-purple-500/40 rounded-2xl p-6 flex flex-col justify-between transition-all duration-200 shadow-xs hover:shadow-md"
+            >
+              {/* Ícono representativo circular centrado */}
+              <div className="flex justify-center pt-2 pb-4">
+                <div className="w-20 h-20 rounded-full bg-purple-500/10 border-2 border-purple-500/20 flex items-center justify-center text-purple-500 shadow-inner">
+                  <ShieldCheck className="w-9 h-9" />
+                </div>
+              </div>
+
+              {/* Datos del Administrador: nombre, rut, correo, num_tlf, direccion */}
+              <div className="space-y-2.5 text-xs text-muted-foreground my-2">
+                <div>
+                  <h3 className="text-lg font-bold text-foreground leading-tight">
+                    {item.nombre}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <IdCard className="w-4 h-4 text-purple-500 shrink-0" />
+                  <span className="font-semibold text-foreground/90">RUT:</span>
+                  <span>{item.rut || 'No registrado'}</span>
+                </div>
+
+                <div className="flex items-center gap-2 truncate">
+                  <Mail className="w-4 h-4 text-purple-500 shrink-0" />
+                  <span className="font-semibold text-foreground/90">Correo:</span>
+                  <span className="truncate">{item.user?.email || 'No registrado'}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-purple-500 shrink-0" />
+                  <span className="font-semibold text-foreground/90">Teléfono:</span>
+                  <span>{item.num_tlf || 'No registrado'}</span>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold text-foreground/90">Dirección: </span>
+                    <span>{item.direccion || 'No registrada'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de Acción: Únicamente Editar (Consideración 1: No puede ser eliminado) */}
+              <div className="flex items-center justify-end pt-4 border-t border-border/80 mt-4">
+                <button
+                  onClick={() => navigate(`/admin/personal/administradores/${item.id_admin}`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-purple-500" />
+                  Editar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 4. PAGINACIÓN (Anterior, 1, 2, ..., Siguiente) */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            disabled={validCurrentPage === 1}
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Anterior
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => setCurrentPage(pageNum)}
+              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${
+                validCurrentPage === pageNum
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'bg-card border border-border/80 text-foreground hover:bg-accent'
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+
+          <button
+            disabled={validCurrentPage === totalPages}
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
     </div>
   );
 };

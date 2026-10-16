@@ -35,7 +35,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const resp = await loginAction(email, password);
       if (resp.token) {
         localStorage.setItem('token', resp.token);
-        set({ token: resp.token, authStatus: 'authenticated' });
+        // Obtener inmediatamente los datos del usuario logueado
+        try {
+          const { user } = await checkAuthAction();
+          set({ token: resp.token, user, authStatus: 'authenticated' });
+        } catch {
+          set({ token: resp.token, authStatus: 'authenticated' });
+        }
       }
       return { ok: true, message: resp.message };
     } catch (error: any) {

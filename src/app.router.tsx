@@ -9,6 +9,7 @@ import { PersonalMenuPage } from './admin/pages/personal/PersonalMenuPage';
 import { PersonalTallerPage } from './admin/pages/personal/PersonalTallerPage';
 import { PersonalTallerFormPage } from './admin/pages/personal/PersonalTallerFormPage';
 import { AdministradoresPage } from './admin/pages/personal/AdministradoresPage';
+import { AdministradoresFormPage } from './admin/pages/personal/AdministradoresFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -125,8 +126,12 @@ export const appRouter = createBrowserRouter([
             element: <PersonalTallerFormPage />,
           },
           {
-            path: 'administradores', // ruta: admin/personal/administradores
+            path: 'administradores', // ruta: admin/personal/administradores (Listado con tarjetas)
             element: <AdministradoresPage />,
+          },
+          {
+            path: 'administradores/:id', // ruta: admin/personal/administradores/:id (crear y editar estilo Fernando Herrera con :id = 'new' o id numérico)
+            element: <AdministradoresFormPage />,
           },
         ],
       },
