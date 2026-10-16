@@ -7,6 +7,7 @@ import { DashboardPage } from './admin/pages/dashboard/DashboardPage';
 import { FinanzasPage } from './admin/pages/finanzas/FinanzasPage';
 import { PersonalMenuPage } from './admin/pages/personal/PersonalMenuPage';
 import { PersonalTallerPage } from './admin/pages/personal/PersonalTallerPage';
+import { PersonalTallerFormPage } from './admin/pages/personal/PersonalTallerFormPage';
 import { AdministradoresPage } from './admin/pages/personal/AdministradoresPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
@@ -116,8 +117,12 @@ export const appRouter = createBrowserRouter([
             element: <PersonalMenuPage />,
           },
           {
-            path: 'taller', // ruta: admin/personal/taller
+            path: 'taller', // ruta: admin/personal/taller (Listado con tarjetas)
             element: <PersonalTallerPage />,
+          },
+          {
+            path: 'taller/:id', // ruta: admin/personal/taller/:id (crear y editar estilo Fernando Herrera con :id = 'new' o id numérico)
+            element: <PersonalTallerFormPage />,
           },
           {
             path: 'administradores', // ruta: admin/personal/administradores
