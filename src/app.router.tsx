@@ -5,6 +5,9 @@ import { RegisterPage } from './auth/pages/register/RegisterPage';
 import { ForgotPasswordPage } from './auth/pages/forgot-password/ForgotPasswordPage';
 import { DashboardPage } from './admin/pages/dashboard/DashboardPage';
 import { FinanzasPage } from './admin/pages/finanzas/FinanzasPage';
+import { PersonalMenuPage } from './admin/pages/personal/PersonalMenuPage';
+import { PersonalTallerPage } from './admin/pages/personal/PersonalTallerPage';
+import { AdministradoresPage } from './admin/pages/personal/AdministradoresPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -106,13 +109,21 @@ export const appRouter = createBrowserRouter([
         ),
       },
       {
-        path: 'personal', // ruta: admin/personal
-        element: (
-          <ModulePlaceholder
-            title="Personal y Administradores"
-            description="Control de personal con AdminController y PersonalController."
-          />
-        ),
+        path: 'personal',
+        children: [
+          {
+            index: true, // ruta: admin/personal (Menú de selección con los 2 cards)
+            element: <PersonalMenuPage />,
+          },
+          {
+            path: 'taller', // ruta: admin/personal/taller
+            element: <PersonalTallerPage />,
+          },
+          {
+            path: 'administradores', // ruta: admin/personal/administradores
+            element: <AdministradoresPage />,
+          },
+        ],
       },
       {
         path: 'finanzas', // ruta: admin/finanzas
