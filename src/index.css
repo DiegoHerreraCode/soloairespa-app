@@ -78,3 +78,17 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+@layer utilities {
+
+  /* Cuando la app tiene la clase .dark en el HTML o Body */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    /* Pone el icono blanco en modo oscuro */
+  }
+
+  /* Opcional: Forzar negro en modo claro si tu fondo base cambia */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+  }
+}
