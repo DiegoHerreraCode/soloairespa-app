@@ -4,6 +4,9 @@ import type {
   InventarioItem,
   RepuestoItem,
   PagoCompraItem,
+  PagoClienteItem,
+  TipoOrdenItem,
+  ReparacionItem,
 } from '../interfaces/dashboard.interface';
 
 interface ApiResponse<T> {
@@ -47,6 +50,36 @@ export const getPagosComprasAction = async (): Promise<PagoCompraItem[]> => {
     return Array.isArray(data) ? data : data.data || [];
   } catch (error) {
     console.error('Error al obtener pagos a compras:', error);
+    return [];
+  }
+};
+
+export const getPagosClientesAction = async (): Promise<PagoClienteItem[]> => {
+  try {
+    const { data } = await apiClient.get<ApiResponse<PagoClienteItem[]> | PagoClienteItem[]>('/pagos-clientes');
+    return Array.isArray(data) ? data : data.data || [];
+  } catch (error) {
+    console.error('Error al obtener pagos de clientes:', error);
+    return [];
+  }
+};
+
+export const getTiposOrdenesAction = async (): Promise<TipoOrdenItem[]> => {
+  try {
+    const { data } = await apiClient.get<ApiResponse<TipoOrdenItem[]> | TipoOrdenItem[]>('/tipos-ordenes');
+    return Array.isArray(data) ? data : data.data || [];
+  } catch (error) {
+    console.error('Error al obtener tipos de órdenes:', error);
+    return [];
+  }
+};
+
+export const getReparacionesAction = async (): Promise<ReparacionItem[]> => {
+  try {
+    const { data } = await apiClient.get<ApiResponse<ReparacionItem[]> | ReparacionItem[]>('/reparaciones');
+    return Array.isArray(data) ? data : data.data || [];
+  } catch (error) {
+    console.error('Error al obtener reparaciones:', error);
     return [];
   }
 };

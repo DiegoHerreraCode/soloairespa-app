@@ -4,6 +4,7 @@ import { LoginPage } from './auth/pages/login/LoginPage';
 import { RegisterPage } from './auth/pages/register/RegisterPage';
 import { ForgotPasswordPage } from './auth/pages/forgot-password/ForgotPasswordPage';
 import { DashboardPage } from './admin/pages/dashboard/DashboardPage';
+import { FinanzasPage } from './admin/pages/finanzas/FinanzasPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -115,12 +116,7 @@ export const appRouter = createBrowserRouter([
       },
       {
         path: 'finanzas', // ruta: admin/finanzas
-        element: (
-          <ModulePlaceholder
-            title="Finanzas"
-            description="Supervisión integral de rentabilidad, desglose por línea de negocio, cálculo de IVA diferencial y productos más exitosos."
-          />
-        ),
+        element: <FinanzasPage />,
       },
     ],
   },
