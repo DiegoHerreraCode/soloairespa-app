@@ -3,8 +3,6 @@ export interface User {
   name: string;
   email: string;
   codigo_verificacion?: string | null;
-  roles?: string[];
-  role?: string;
 }
 
 export interface Admin {

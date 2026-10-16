@@ -1,10 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  getOrdenesAction,
-  getInventarioAction,
-  getRepuestosAction,
-  getPagosComprasAction,
-} from '../actions/dashboard.actions';
+import { getOrdenesAction } from '../actions/get-ordenes.action';
+import { getInventarioAction } from '../actions/get-inventario.action';
+import { getRepuestosAction } from '../actions/get-repuestos.action';
+import { getPagosComprasAction } from '../actions/get-pagos-compras.action';
 
 export const useDashboardData = () => {
   const ordenesQuery = useQuery({

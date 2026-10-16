@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
-import type { OrdenItem } from '../../interfaces/dashboard.interface';
+import type { OrdenItem } from '../../interfaces/orden.interface';
 
 interface Props {
   ordenes: OrdenItem[];
