@@ -18,6 +18,8 @@ import { PagoClienteFormPage } from './admin/pages/clientes/PagoClienteFormPage'
 import { CompraMenuPage } from './admin/pages/compras/CompraMenuPage';
 import { CompraProveedorPage } from './admin/pages/compras/CompraProveedorPage';
 import { CompraProveedorFormPage } from './admin/pages/compras/CompraProveedorFormPage';
+import { PagoCompraPage } from './admin/pages/compras/PagoCompraPage';
+import { PagoCompraFormPage } from './admin/pages/compras/PagoCompraFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -141,13 +143,12 @@ export const appRouter = createBrowserRouter([
             ),
           },
           {
-            path: 'pagos-compras', // ruta: admin/compras/pagos-compras
-            element: (
-              <ModulePlaceholder
-                title="Listado de Pagos de Compras"
-                description="Control de cuotas y compromisos de pago con proveedores."
-              />
-            ),
+            path: 'pagos-compras', // ruta: admin/compras/pagos-compras (Listado con tabla de 7 filas)
+            element: <PagoCompraPage />,
+          },
+          {
+            path: 'pagos-compras/:id', // ruta: admin/compras/pagos-compras/:id (detalle o pago)
+            element: <PagoCompraFormPage />,
           },
         ],
       },

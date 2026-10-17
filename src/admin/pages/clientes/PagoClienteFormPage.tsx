@@ -397,13 +397,27 @@ export const PagoClienteFormPage = () => {
             {/* Imagen actual si existe */}
             {pagoData?.imagePath ? (
               <div className="space-y-2">
-                <span className="text-xs text-muted-foreground block">Comprobante Adjunto:</span>
-                <div className="flex items-center justify-center p-3 bg-muted/20 rounded-xl border border-border/60">
-                  <img
-                    src={getBackendImageUrl(pagoData.imagePath) || ''}
-                    alt="Comprobante de pago"
-                    className="max-h-80 rounded-xl object-contain shadow-xs"
-                  />
+                <div className="p-4 bg-muted/20 border border-border/80 rounded-2xl flex flex-col items-center gap-3">
+                  <a href={getBackendImageUrl(pagoData.imagePath) || ''} target="_blank" rel="noopener noreferrer" className="relative group block overflow-hidden rounded-xl border border-border">
+                    <img
+                      src={getBackendImageUrl(pagoData.imagePath) || ''}
+                      alt="Comprobante de pago"
+                      className="max-h-64 object-contain rounded-xl group-hover:scale-105 transition-transform duration-200"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                      <Eye className="w-4 h-4 mr-1" />
+                      Ver Imagen Completa
+                    </div>
+                  </a>
+                  <a
+                    href={getBackendImageUrl(pagoData.imagePath) || ''}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-blue-500 hover:underline flex items-center gap-1"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Abrir comprobante en pestaña nueva
+                  </a>
                 </div>
               </div>
             ) : (
