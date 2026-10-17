@@ -15,6 +15,9 @@ import { ClientePage } from './admin/pages/clientes/ClientePage';
 import { ClienteFormPage } from './admin/pages/clientes/ClienteFormPage';
 import { PagoClientePage } from './admin/pages/clientes/PagoClientePage';
 import { PagoClienteFormPage } from './admin/pages/clientes/PagoClienteFormPage';
+import { CompraMenuPage } from './admin/pages/compras/CompraMenuPage';
+import { CompraProveedorPage } from './admin/pages/compras/CompraProveedorPage';
+import { CompraProveedorFormPage } from './admin/pages/compras/CompraProveedorFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -114,13 +117,39 @@ export const appRouter = createBrowserRouter([
         ],
       },
       {
-        path: 'compras', // ruta: admin/compras
-        element: (
-          <ModulePlaceholder
-            title="Compras y Proveedores"
-            description="Control de proveedores, compras y pagos."
-          />
-        ),
+        path: 'compras',
+        children: [
+          {
+            index: true, // ruta: admin/compras (Menú de 3 cards: Compras, Pagos de Compras, Proveedores)
+            element: <CompraMenuPage />,
+          },
+          {
+            path: 'proveedores', // ruta: admin/compras/proveedores (Listado de proveedores en cards de 3)
+            element: <CompraProveedorPage />,
+          },
+          {
+            path: 'proveedores/:id', // ruta: admin/compras/proveedores/:id (:id = 'new' o id numérico)
+            element: <CompraProveedorFormPage />,
+          },
+          {
+            path: 'listado', // ruta: admin/compras/listado
+            element: (
+              <ModulePlaceholder
+                title="Listado de Compras"
+                description="Registro y detalle de compras de repuestos, insumos y equipos."
+              />
+            ),
+          },
+          {
+            path: 'pagos-compras', // ruta: admin/compras/pagos-compras
+            element: (
+              <ModulePlaceholder
+                title="Listado de Pagos de Compras"
+                description="Control de cuotas y compromisos de pago con proveedores."
+              />
+            ),
+          },
+        ],
       },
       {
         path: 'inventario', // ruta: admin/inventario
