@@ -73,7 +73,7 @@ export const LoginPage = () => {
                 </div>
                 <Input
                   id="password"
-                  type={showPassword ? 'password' : 'text'}
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   placeholder="••••••••"
                   className="rounded-xl h-11 px-3.5 focus-visible:ring-primary/40"
@@ -85,7 +85,7 @@ export const LoginPage = () => {
                   size="icon"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff /> : <Eye />}
+                  {showPassword ? <Eye /> : <EyeOff />}
                 </Button>
               </div>
 

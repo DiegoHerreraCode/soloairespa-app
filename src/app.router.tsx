@@ -118,7 +118,7 @@ export const appRouter = createBrowserRouter([
         element: (
           <ModulePlaceholder
             title="Compras y Proveedores"
-            description="Control de proveedores, compras y pagos con CompraController, ProveedorController y PagoCompraController."
+            description="Control de proveedores, compras y pagos."
           />
         ),
       },
