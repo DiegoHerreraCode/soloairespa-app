@@ -28,6 +28,8 @@ import { RepuestoFormPage } from './admin/pages/inventario/RepuestoFormPage';
 import { EquipoPage } from './admin/pages/inventario/EquipoPage';
 import { ModeloPage } from './admin/pages/inventario/ModeloPage';
 import { ModeloFormPage } from './admin/pages/inventario/ModeloFormPage';
+import { MarcaPage } from './admin/pages/inventario/MarcaPage';
+import { MarcaFormPage } from './admin/pages/inventario/MarcaFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -185,12 +187,11 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'marcas', // ruta: admin/inventario/marcas
-            element: (
-              <ModulePlaceholder
-                title="Listado de Marcas"
-                description="Control y gestión de marcas comerciales."
-              />
-            ),
+            element: <MarcaPage />,
+          },
+          {
+            path: 'marcas/:id', // ruta: admin/inventario/marcas/:id (crear con 'new' o editar)
+            element: <MarcaFormPage />,
           },
           {
             path: 'modelos', // ruta: admin/inventario/modelos
