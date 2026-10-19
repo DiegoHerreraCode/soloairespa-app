@@ -82,7 +82,7 @@ export const appRouter = createBrowserRouter([
         element: (
           <ModulePlaceholder
             title="Órdenes de Trabajo"
-            description="Gestión y estado de órdenes mediante OrdenController."
+            description="Gestión de OrdenController y TipoOrdenController."
           />
         ),
       },
@@ -157,8 +157,17 @@ export const appRouter = createBrowserRouter([
         path: 'inventario', // ruta: admin/inventario
         element: (
           <ModulePlaceholder
-            title="Inventario y Servicios"
-            description="Control de repuestos, marcas, modelos, insumos, reparaciones y equipos."
+            title="Inventario"
+            description="Gestión de InventarioController, MarcaController, ModeloController, EquipoController y RepuestoController."
+          />
+        ),
+      },
+      {
+        path: 'taller', // ruta: admin/taller
+        element: (
+          <ModulePlaceholder
+            title="Reparaciones y Servicios del Taller"
+            description="Gestión de ReparacionController, ServicioTallerController y TipoServicioTallerController."
           />
         ),
       },

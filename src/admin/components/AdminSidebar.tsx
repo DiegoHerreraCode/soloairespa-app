@@ -8,6 +8,7 @@ import {
   Boxes,
   UserCog,
   CircleDollarSign,
+  Wrench,
 } from 'lucide-react';
 
 interface Props {
@@ -51,6 +52,12 @@ export const AdminSidebar = ({ isOpen }: Props) => {
       to: '/admin/inventario',
       icon: Boxes,
       description: 'Inventario, marcas, modelos, repuestos y equipos',
+    },
+    {
+      label: 'Taller',
+      to: '/admin/taller',
+      icon: Wrench,
+      description: 'Reparaciones y servicios del taller',
     },
     {
       label: 'Personal',
