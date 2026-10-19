@@ -16,6 +16,8 @@ import { ClienteFormPage } from './admin/pages/clientes/ClienteFormPage';
 import { PagoClientePage } from './admin/pages/clientes/PagoClientePage';
 import { PagoClienteFormPage } from './admin/pages/clientes/PagoClienteFormPage';
 import { CompraMenuPage } from './admin/pages/compras/CompraMenuPage';
+import { CompraPage } from './admin/pages/compras/CompraPage';
+import { CompraFormPage } from './admin/pages/compras/CompraFormPage';
 import { CompraProveedorPage } from './admin/pages/compras/CompraProveedorPage';
 import { CompraProveedorFormPage } from './admin/pages/compras/CompraProveedorFormPage';
 import { PagoCompraPage } from './admin/pages/compras/PagoCompraPage';
@@ -134,13 +136,12 @@ export const appRouter = createBrowserRouter([
             element: <CompraProveedorFormPage />,
           },
           {
-            path: 'listado', // ruta: admin/compras/listado
-            element: (
-              <ModulePlaceholder
-                title="Listado de Compras"
-                description="Registro y detalle de compras de repuestos, insumos y equipos."
-              />
-            ),
+            path: 'listado', // ruta: admin/compras/listado (Listado de compras en tabla de 7 filas)
+            element: <CompraPage />,
+          },
+          {
+            path: 'listado/:id', // ruta: admin/compras/listado/:id (modo detalle solo lectura o :id='new' para crear)
+            element: <CompraFormPage />,
           },
           {
             path: 'pagos-compras', // ruta: admin/compras/pagos-compras (Listado con tabla de 7 filas)
