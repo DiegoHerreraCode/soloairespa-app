@@ -26,6 +26,8 @@ import { InventarioMenuPage } from './admin/pages/inventario/InventarioMenuPage'
 import { RepuestoPage } from './admin/pages/inventario/RepuestoPage';
 import { RepuestoFormPage } from './admin/pages/inventario/RepuestoFormPage';
 import { EquipoPage } from './admin/pages/inventario/EquipoPage';
+import { ModeloPage } from './admin/pages/inventario/ModeloPage';
+import { ModeloFormPage } from './admin/pages/inventario/ModeloFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -192,12 +194,11 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'modelos', // ruta: admin/inventario/modelos
-            element: (
-              <ModulePlaceholder
-                title="Listado de Modelos"
-                description="Gestión técnica de modelos de repuestos y equipos."
-              />
-            ),
+            element: <ModeloPage />,
+          },
+          {
+            path: 'modelos/:id', // ruta: admin/inventario/modelos/:id (crear con 'new' o editar)
+            element: <ModeloFormPage />,
           },
           {
             path: 'equipos', // ruta: admin/inventario/equipos
