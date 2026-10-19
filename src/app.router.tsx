@@ -25,6 +25,7 @@ import { PagoCompraFormPage } from './admin/pages/compras/PagoCompraFormPage';
 import { InventarioMenuPage } from './admin/pages/inventario/InventarioMenuPage';
 import { RepuestoPage } from './admin/pages/inventario/RepuestoPage';
 import { RepuestoFormPage } from './admin/pages/inventario/RepuestoFormPage';
+import { EquipoPage } from './admin/pages/inventario/EquipoPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -200,12 +201,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'equipos', // ruta: admin/inventario/equipos
-            element: (
-              <ModulePlaceholder
-                title="Listado de Equipos"
-                description="Gestión de equipos serializados y trazabilidad."
-              />
-            ),
+            element: <EquipoPage />,
           },
         ],
       },
