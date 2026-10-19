@@ -30,6 +30,8 @@ import { ModeloPage } from './admin/pages/inventario/ModeloPage';
 import { ModeloFormPage } from './admin/pages/inventario/ModeloFormPage';
 import { MarcaPage } from './admin/pages/inventario/MarcaPage';
 import { MarcaFormPage } from './admin/pages/inventario/MarcaFormPage';
+import { ItemPage } from './admin/pages/inventario/ItemPage';
+import { ItemFormPage } from './admin/pages/inventario/ItemFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -178,12 +180,11 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'items', // ruta: admin/inventario/items
-            element: (
-              <ModulePlaceholder
-                title="Listado de Ítems de Inventario"
-                description="Catálogo maestro de insumos, repuestos y existencias."
-              />
-            ),
+            element: <ItemPage />,
+          },
+          {
+            path: 'items/:id', // ruta: admin/inventario/items/:id (crear con 'new' o editar)
+            element: <ItemFormPage />,
           },
           {
             path: 'marcas', // ruta: admin/inventario/marcas
