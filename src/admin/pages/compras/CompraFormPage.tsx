@@ -515,6 +515,7 @@ export const CompraFormPage = () => {
             <table className="w-full text-left text-xs sm:text-sm border-collapse">
               <thead>
                 <tr className="border-b border-border/80 text-muted-foreground">
+                  <th className="py-2.5 px-3">id_detalle_compra</th>
                   <th className="py-2.5 px-3">Ítem / Repuesto</th>
                   <th className="py-2.5 px-3 text-center">Cantidad</th>
                   <th className="py-2.5 px-3 text-right">Costo Unitario</th>
@@ -528,6 +529,9 @@ export const CompraFormPage = () => {
                   const itemInv = inventario.find((i) => i.id_inventario === det.id_inventario) || det.inventario;
                   return (
                     <tr key={idx} className="hover:bg-accent/30">
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-foreground">{det.id_detalle_compra}</div>
+                      </td>
                       <td className="py-3 px-3">
                         <div className="font-bold text-foreground">{itemInv?.nombre || `Ítem #${det.id_inventario}`}</div>
                         <div className="text-[11px] text-muted-foreground font-mono">SKU: {itemInv?.sku || 'N/A'}</div>

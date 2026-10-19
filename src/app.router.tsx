@@ -22,6 +22,9 @@ import { CompraProveedorPage } from './admin/pages/compras/CompraProveedorPage';
 import { CompraProveedorFormPage } from './admin/pages/compras/CompraProveedorFormPage';
 import { PagoCompraPage } from './admin/pages/compras/PagoCompraPage';
 import { PagoCompraFormPage } from './admin/pages/compras/PagoCompraFormPage';
+import { InventarioMenuPage } from './admin/pages/inventario/InventarioMenuPage';
+import { RepuestoPage } from './admin/pages/inventario/RepuestoPage';
+import { RepuestoFormPage } from './admin/pages/inventario/RepuestoFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -154,13 +157,57 @@ export const appRouter = createBrowserRouter([
         ],
       },
       {
-        path: 'inventario', // ruta: admin/inventario
-        element: (
-          <ModulePlaceholder
-            title="Inventario"
-            description="Gestión de InventarioController, MarcaController, ModeloController, EquipoController y RepuestoController."
-          />
-        ),
+        path: 'inventario',
+        children: [
+          {
+            index: true, // ruta: admin/inventario (Menú con las 5 opciones: Items, Marcas, Modelos, Equipos, Repuestos)
+            element: <InventarioMenuPage />,
+          },
+          {
+            path: 'repuestos', // ruta: admin/inventario/repuestos (Listado de repuestos en tabla de 7 filas)
+            element: <RepuestoPage />,
+          },
+          {
+            path: 'repuestos/:id', // ruta: admin/inventario/repuestos/:id (Ver detalle del repuesto a modo de solo lectura)
+            element: <RepuestoFormPage />,
+          },
+          {
+            path: 'items', // ruta: admin/inventario/items
+            element: (
+              <ModulePlaceholder
+                title="Listado de Ítems de Inventario"
+                description="Catálogo maestro de insumos, repuestos y existencias."
+              />
+            ),
+          },
+          {
+            path: 'marcas', // ruta: admin/inventario/marcas
+            element: (
+              <ModulePlaceholder
+                title="Listado de Marcas"
+                description="Control y gestión de marcas comerciales."
+              />
+            ),
+          },
+          {
+            path: 'modelos', // ruta: admin/inventario/modelos
+            element: (
+              <ModulePlaceholder
+                title="Listado de Modelos"
+                description="Gestión técnica de modelos de repuestos y equipos."
+              />
+            ),
+          },
+          {
+            path: 'equipos', // ruta: admin/inventario/equipos
+            element: (
+              <ModulePlaceholder
+                title="Listado de Equipos"
+                description="Gestión de equipos serializados y trazabilidad."
+              />
+            ),
+          },
+        ],
       },
       {
         path: 'taller', // ruta: admin/taller

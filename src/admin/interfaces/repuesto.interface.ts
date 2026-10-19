@@ -5,7 +5,7 @@ export interface RepuestoItem {
   serial?: string;
   service_tag?: string;
   estado: 'nuevo' | 'reparado' | 'pendiente_reparacion';
-  propietario?: string;
+  propietario?: boolean;
   id_orden_entrada?: number | null;
   id_orden_salida: number | null;
   costo_adquisicion?: number | string;
