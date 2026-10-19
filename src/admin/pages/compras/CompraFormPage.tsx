@@ -344,6 +344,16 @@ export const CompraFormPage = () => {
       }
     }
 
+    // Validar que no se repita ningun service_tag en todos los items
+    const serviceTags = cartItems
+      .filter((item) => item.inventario.tipo !== 'insumo')
+      .flatMap((item) => item.seriales.map((s) => s.service_tag));
+    const uniqueServiceTags = new Set(serviceTags);
+    if (serviceTags.length !== uniqueServiceTags.size) {
+      toast.warning('No se permiten service_tags repetidos en la compra');
+      return;
+    }
+
     // Validar suma del plan de pagos con el total y que los porcentajes sumen exactamente 100%
     const sumaPorcentajes = pagosPlan.reduce((acc, p) => acc + (Number(p.porcentaje_monto_total) || 0), 0);
     const sumaPagos = pagosPlan.reduce((acc, p) => acc + (Number(p.monto_a_pagar) || 0), 0);
