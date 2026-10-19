@@ -389,9 +389,11 @@ export const FinanzasPage = () => {
         <FinanceSummaryCard
           title="IVA Acumulado (Período)"
           value={`$${Math.round(ivaAcumulado).toLocaleString('es-CL')}`}
-          subtitle={`IVA Recaudado ($${Math.round(ivaVentas).toLocaleString('es-CL')}) - IVA Pagado ($${Math.round(ivaCompras).toLocaleString('es-CL')})`}
+          subtitle={`IVA Recaudado - IVA Pagado`}
           icon={CircleDollarSign}
           badgeColor="bg-purple-500/10 text-purple-500"
+          ivaVentas={`${Math.round(ivaVentas).toLocaleString('es-CL')}`}
+          ivaCompras={`${Math.round(ivaCompras).toLocaleString('es-CL')}`}
         />
       </section>
 

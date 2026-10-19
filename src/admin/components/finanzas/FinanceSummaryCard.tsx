@@ -7,6 +7,8 @@ interface Props {
   icon: typeof LucideIcon;
   badgeText?: string;
   badgeColor?: string;
+  ivaVentas?: string;
+  ivaCompras?: string;
 }
 
 export const FinanceSummaryCard = ({
@@ -16,6 +18,8 @@ export const FinanceSummaryCard = ({
   icon: Icon,
   badgeText,
   badgeColor = 'bg-primary/10 text-primary',
+  ivaVentas,
+  ivaCompras,
 }: Props) => {
   return (
     <div className="bg-card p-5 rounded-2xl border border-border/80 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
@@ -40,6 +44,16 @@ export const FinanceSummaryCard = ({
         <p className="text-xs text-muted-foreground font-medium truncate">
           {subtitle}
         </p>
+        {ivaVentas !== undefined && ivaCompras !== undefined && (
+          <div className="mt-2 text-xs">
+            <p className="text-green-600 font-medium">
+              IVA Recaudado: ${ivaVentas}
+            </p>
+            <p className="text-red-600 font-medium">
+              IVA Pagado: ${ivaCompras}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
