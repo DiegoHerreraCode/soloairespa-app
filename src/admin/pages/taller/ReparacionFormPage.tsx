@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import { useParams, Link } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -67,7 +67,6 @@ interface ServicioFila {
 
 export const ReparacionFormPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const isCreating = !id || id === 'new';
@@ -832,11 +831,10 @@ export const ReparacionFormPage = () => {
                         type="button"
                         onClick={() => handleAgregarInsumo(item)}
                         disabled={yaSeleccionado}
-                        className={`p-1 rounded-lg shrink-0 transition-colors ${
-                          yaSeleccionado
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                        }`}
+                        className={`p-1 rounded-lg shrink-0 transition-colors ${yaSeleccionado
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                          }`}
                         title={yaSeleccionado ? 'Ya agregado' : 'Agregar a la lista'}
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -970,7 +968,7 @@ export const ReparacionFormPage = () => {
 
                         {/* acciones */}
                         <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                          {!isReadOnly ? (
+                          {!isReadOnly && (srv.estado === 'pendiente_asignacion' || srv.estado === 'en_espera') ? (
                             <button
                               type="button"
                               onClick={() => handleRemoverServicio(idx)}
@@ -982,7 +980,7 @@ export const ReparacionFormPage = () => {
                           ) : (
                             <div className="flex items-center justify-center gap-1.5">
                               {/* Botón según estado para interactuar directamente (Boceto 1) */}
-                              {srv.estado === 'en_espera' && srv.id_reparacion_servicio_taller && (
+                              {srv.estado === 'en_espera' && isReadOnly && srv.id_reparacion_servicio_taller && (
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -999,18 +997,17 @@ export const ReparacionFormPage = () => {
                                 </button>
                               )}
 
-                              {srv.estado === 'pendiente_asignacion' && (
-                                <button
-                                  type="button"
-                                  onClick={() => toast.info('Componente de asignación de personal en desarrollo')}
-                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent cursor-pointer"
+                              {srv.estado === 'pendiente_asignacion' && isReadOnly && srv.id_reparacion_servicio_taller && (
+                                <Link
+                                  to={`/admin/taller/reparaciones/${id}/servicios/${srv.id_reparacion_servicio_taller}/asignar-personal`}
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent cursor-pointer transition-colors"
                                 >
-                                  <UserPlus className="w-3 h-3" />
+                                  <UserPlus className="w-3 h-3 text-blue-500" />
                                   asignar personal
-                                </button>
+                                </Link>
                               )}
 
-                              {srv.estado === 'en_proceso' && srv.id_reparacion_servicio_taller && (
+                              {srv.estado === 'en_proceso' && isReadOnly && srv.id_reparacion_servicio_taller && (
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1082,11 +1079,10 @@ export const ReparacionFormPage = () => {
                         type="button"
                         onClick={() => handleAgregarServicio(serv)}
                         disabled={yaSeleccionado}
-                        className={`p-1 rounded-lg shrink-0 transition-colors ${
-                          yaSeleccionado
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                        }`}
+                        className={`p-1 rounded-lg shrink-0 transition-colors ${yaSeleccionado
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                          }`}
                         title={yaSeleccionado ? 'Ya agregado' : 'Agregar a la lista'}
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -1150,7 +1146,7 @@ export const ReparacionFormPage = () => {
             >
               {isSaving ? 'Registrando...' : 'Registrar Reparación'}
             </button>
-          ) : isReadOnly ? (
+          ) : isReadOnly && reparacionData.estado != 'finalizada' && reparacionData.estado != 'anulada' ? (
             <button
               type="button"
               onClick={() => setIsEditingDirecto(true)}
@@ -1159,7 +1155,7 @@ export const ReparacionFormPage = () => {
               <Edit className="w-4 h-4" />
               Editar Sin Generar Cotización Extra
             </button>
-          ) : (
+          ) : isEditingDirecto ? (
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
@@ -1177,7 +1173,10 @@ export const ReparacionFormPage = () => {
                 {isSaving ? 'Guardando...' : 'Guardar Cambios Directos'}
               </button>
             </div>
-          )}
+          ) : (
+            <span className="px-4 py-3 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground">Reparación {reparacionData.estado}</span>
+          )
+          }
         </div>
       </div>
     </div>

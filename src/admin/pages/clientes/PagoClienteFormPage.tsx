@@ -194,11 +194,14 @@ export const PagoClienteFormPage = () => {
                 className="w-full px-3.5 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               >
                 <option value="">Selecciona la orden...</option>
-                {ordenes.map((o) => (
-                  <option key={o.id_orden} value={o.id_orden}>
-                    Orden #{o.id_orden} - Pendiente: ${Number(o.monto_pendiente || 0).toLocaleString('es-CL')} (Total: ${Number(o.monto_total || 0).toLocaleString('es-CL')})
-                  </option>
-                ))}
+                {ordenes
+                  .filter((o) => o.estado_operativo === 'finalizada' && o.estado_administrativo != 'pagada' && o.monto_pendiente != 0)
+                  .filter((o) => (!idCliente ? true : Number(o.id_cliente) === Number(idCliente)))
+                  .map((o) => (
+                    <option key={o.id_orden} value={o.id_orden}>
+                      Orden #{o.id_orden} - Pendiente: ${Number(o.monto_pendiente || 0).toLocaleString('es-CL')} (Total: ${Number(o.monto_total || 0).toLocaleString('es-CL')})
+                    </option>
+                  ))}
               </select>
             </div>
 

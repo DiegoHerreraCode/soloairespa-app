@@ -39,6 +39,7 @@ import { ServicioTallerPage } from './admin/pages/taller/ServicioTallerPage';
 import { ServicioTallerFormPage } from './admin/pages/taller/ServicioTallerFormPage';
 import { ReparacionPage } from './admin/pages/taller/ReparacionPage';
 import { ReparacionFormPage } from './admin/pages/taller/ReparacionFormPage';
+import { AsignarPersonalPage } from './admin/pages/taller/AsignarPersonalPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -229,6 +230,10 @@ export const appRouter = createBrowserRouter([
           {
             path: 'reparaciones/:id', // ruta: admin/taller/reparaciones/:id (crear con 'new' o ver/editar)
             element: <ReparacionFormPage />,
+          },
+          {
+            path: 'reparaciones/:idReparacion/servicios/:idReparacionServicio/asignar-personal',
+            element: <AsignarPersonalPage />,
           },
           {
             path: 'servicios', // ruta: admin/taller/servicios
