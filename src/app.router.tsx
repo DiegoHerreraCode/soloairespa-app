@@ -38,6 +38,7 @@ import { TipoServicioTallerFormPage } from './admin/pages/taller/TipoServicioTal
 import { ServicioTallerPage } from './admin/pages/taller/ServicioTallerPage';
 import { ServicioTallerFormPage } from './admin/pages/taller/ServicioTallerFormPage';
 import { ReparacionPage } from './admin/pages/taller/ReparacionPage';
+import { ReparacionFormPage } from './admin/pages/taller/ReparacionFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -226,8 +227,8 @@ export const appRouter = createBrowserRouter([
             element: <ReparacionPage />,
           },
           {
-            path: 'reparaciones/:id', // ruta: admin/taller/reparaciones/:id (Ver detalle del repuesto a modo de solo lectura)
-            //  element: <ReparacionFormPage />,
+            path: 'reparaciones/:id', // ruta: admin/taller/reparaciones/:id (crear con 'new' o ver/editar)
+            element: <ReparacionFormPage />,
           },
           {
             path: 'servicios', // ruta: admin/taller/servicios

@@ -23,8 +23,9 @@ export const ReparacionPage = () => {
   const queryClient = useQueryClient();
   const { reparaciones, repuestos, isLoading } = useReparaciones();
 
-  // Opciones de filtrado por id_orden, estado, fecha desde y fecha hasta
+  // Opciones de filtrado por id_orden, asociación a orden, estado, fecha desde y fecha hasta
   const [idOrdenFilter, setIdOrdenFilter] = useState('');
+  const [ordenAsociadaFilter, setOrdenAsociadaFilter] = useState<'all' | 'con_orden' | 'sin_orden'>('all');
   const [estadoFilter, setEstadoFilter] = useState<'all' | 'pendiente' | 'en_proceso' | 'finalizada' | 'anulada'>('all');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
@@ -72,7 +73,7 @@ export const ReparacionPage = () => {
   // Filtrado de reparaciones
   const filteredReparaciones = useMemo(() => {
     return reparaciones.filter((rep: ReparacionItem) => {
-      // 1. Filtro por id_orden
+      // 1. Filtro por id_orden escrito
       if (idOrdenFilter.trim()) {
         const queryOrden = idOrdenFilter.trim();
         if (!rep.id_orden || !String(rep.id_orden).includes(queryOrden)) {
@@ -80,12 +81,20 @@ export const ReparacionPage = () => {
         }
       }
 
-      // 2. Filtro por estado
+      // 2. Filtro por asociación a orden (Consideración 6)
+      if (ordenAsociadaFilter === 'con_orden' && !rep.id_orden) {
+        return false;
+      }
+      if (ordenAsociadaFilter === 'sin_orden' && rep.id_orden) {
+        return false;
+      }
+
+      // 3. Filtro por estado
       if (estadoFilter !== 'all' && rep.estado !== estadoFilter) {
         return false;
       }
 
-      // 3. Filtro por fechas (comparando con fecha_inicio de la reparación)
+      // 4. Filtro por fechas (comparando con fecha_inicio de la reparación)
       const fechaLimpia = rep.fecha_inicio
         ? rep.fecha_inicio.split('T')[0].split(' ')[0]
         : '';
@@ -103,7 +112,7 @@ export const ReparacionPage = () => {
 
       return true;
     });
-  }, [reparaciones, idOrdenFilter, estadoFilter, fechaDesde, fechaHasta]);
+  }, [reparaciones, idOrdenFilter, ordenAsociadaFilter, estadoFilter, fechaDesde, fechaHasta]);
 
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredReparaciones.length / itemsPerPage) || 1;
@@ -140,7 +149,7 @@ export const ReparacionPage = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            Nuevo
+            Nueva
           </Link>
         </div>
       </div>
@@ -152,7 +161,7 @@ export const ReparacionPage = () => {
           Filtros de Búsqueda
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           {/* Filtro por id_orden */}
           <div>
             <input
@@ -166,6 +175,22 @@ export const ReparacionPage = () => {
               placeholder="Buscar por id_orden..."
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-mono"
             />
+          </div>
+
+          {/* Filtro por asociación a orden (Consideración 6) */}
+          <div>
+            <select
+              value={ordenAsociadaFilter}
+              onChange={(e) => {
+                setOrdenAsociadaFilter(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all cursor-pointer"
+            >
+              <option value="all">Órdenes: Todas</option>
+              <option value="con_orden">Solo asociadas a una orden</option>
+              <option value="sin_orden">Solo no asociadas</option>
+            </select>
           </div>
 
           {/* Filtro por Estado */}
