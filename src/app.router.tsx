@@ -37,6 +37,7 @@ import { TipoServicioTallerPage } from './admin/pages/taller/TipoServicioTallerP
 import { TipoServicioTallerFormPage } from './admin/pages/taller/TipoServicioTallerFormPage';
 import { ServicioTallerPage } from './admin/pages/taller/ServicioTallerPage';
 import { ServicioTallerFormPage } from './admin/pages/taller/ServicioTallerFormPage';
+import { ReparacionPage } from './admin/pages/taller/ReparacionPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -222,7 +223,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'reparaciones', // ruta: admin/taller/reparaciones (Listado de reparaciones en tabla de 7 filas)
-            // element: <ReparacionPage />,
+            element: <ReparacionPage />,
           },
           {
             path: 'reparaciones/:id', // ruta: admin/taller/reparaciones/:id (Ver detalle del repuesto a modo de solo lectura)
