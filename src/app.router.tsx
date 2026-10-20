@@ -32,6 +32,9 @@ import { MarcaPage } from './admin/pages/inventario/MarcaPage';
 import { MarcaFormPage } from './admin/pages/inventario/MarcaFormPage';
 import { ItemPage } from './admin/pages/inventario/ItemPage';
 import { ItemFormPage } from './admin/pages/inventario/ItemFormPage';
+import { TallerMenuPage } from './admin/pages/taller/TallerMenuPage';
+import { TipoServicioTallerPage } from './admin/pages/taller/TipoServicioTallerPage';
+import { TipoServicioTallerFormPage } from './admin/pages/taller/TipoServicioTallerFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -210,12 +213,36 @@ export const appRouter = createBrowserRouter([
       },
       {
         path: 'taller', // ruta: admin/taller
-        element: (
-          <ModulePlaceholder
-            title="Reparaciones y Servicios del Taller"
-            description="Gestión de ReparacionController, ServicioTallerController y TipoServicioTallerController."
-          />
-        ),
+        children: [
+          {
+            index: true, // ruta: admin/taller (Menú de selección con los 3 cards)
+            element: <TallerMenuPage />,
+          },
+          {
+            path: 'reparaciones', // ruta: admin/taller/reparaciones (Listado de reparaciones en tabla de 7 filas)
+            // element: <ReparacionPage />,
+          },
+          {
+            path: 'reparaciones/:id', // ruta: admin/taller/reparaciones/:id (Ver detalle del repuesto a modo de solo lectura)
+            //  element: <ReparacionFormPage />,
+          },
+          {
+            path: 'servicios', // ruta: admin/taller/servicios
+            //  element: <ServicioTallerPage />,
+          },
+          {
+            path: 'servicios/:id', // ruta: admin/taller/servicios/:id (crear con 'new' o editar)
+            //   element: <ServicioTallerFormPage />,
+          },
+          {
+            path: 'tipos-servicios', // ruta: admin/taller/tipos-servicios
+            element: <TipoServicioTallerPage />,
+          },
+          {
+            path: 'tipos-servicios/:id', // ruta: admin/taller/tipos-servicios/:id (crear con 'new' o editar)
+            element: <TipoServicioTallerFormPage />,
+          },
+        ],
       },
       {
         path: 'personal',
