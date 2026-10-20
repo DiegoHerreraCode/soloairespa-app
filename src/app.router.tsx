@@ -35,6 +35,8 @@ import { ItemFormPage } from './admin/pages/inventario/ItemFormPage';
 import { TallerMenuPage } from './admin/pages/taller/TallerMenuPage';
 import { TipoServicioTallerPage } from './admin/pages/taller/TipoServicioTallerPage';
 import { TipoServicioTallerFormPage } from './admin/pages/taller/TipoServicioTallerFormPage';
+import { ServicioTallerPage } from './admin/pages/taller/ServicioTallerPage';
+import { ServicioTallerFormPage } from './admin/pages/taller/ServicioTallerFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -228,11 +230,11 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'servicios', // ruta: admin/taller/servicios
-            //  element: <ServicioTallerPage />,
+            element: <ServicioTallerPage />,
           },
           {
             path: 'servicios/:id', // ruta: admin/taller/servicios/:id (crear con 'new' o editar)
-            //   element: <ServicioTallerFormPage />,
+            element: <ServicioTallerFormPage />,
           },
           {
             path: 'tipos-servicios', // ruta: admin/taller/tipos-servicios
