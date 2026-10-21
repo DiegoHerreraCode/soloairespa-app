@@ -12,15 +12,12 @@ import {
   AlertCircle,
   XCircle,
 } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useReparaciones } from '../../hooks/useReparaciones';
-import { finalizarReparacionAction } from '../../actions/finalizar-reparacion.action';
 import type { ReparacionItem } from '../../interfaces/reparacion.interface';
 
 export const ReparacionPage = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { reparaciones, repuestos, isLoading } = useReparaciones();
 
   // Opciones de filtrado por id_orden, asociación a orden, estado, fecha desde y fecha hasta
@@ -41,33 +38,20 @@ export const ReparacionPage = () => {
     return map;
   }, [repuestos]);
 
-  // Mutación para finalizar reparación
-  const finalizarMutation = useMutation({
-    mutationFn: (id_reparacion: number) => finalizarReparacionAction(id_reparacion),
-    onSuccess: (_, id) => {
-      toast.success(`Reparación #${id} finalizada con éxito`);
-      queryClient.invalidateQueries({ queryKey: ['reparaciones-listado'] });
-      queryClient.invalidateQueries({ queryKey: ['repuestos-listado'] });
-      queryClient.invalidateQueries({ queryKey: ['inventario-listado'] });
-      queryClient.invalidateQueries({ queryKey: ['ordenes-listado'] });
-    },
-    onError: (error: any) => {
-      const errors = error.response?.data?.errors;
-      if (errors && typeof errors === 'object') {
-        const firstKey = Object.keys(errors)[0];
-        const firstMsg = errors[firstKey][0];
-        toast.error(firstMsg);
-        return;
-      }
-      const msg = error.response?.data?.message || 'Error al finalizar la reparación';
-      toast.error(msg);
-    },
-  });
-
+  // Redirección para finalizar reparación pasando por el componente de devolver insumos sobrantes
   const handleFinalizar = (id_reparacion: number) => {
-    if (confirm(`¿Estás seguro de que deseas marcar como finalizada la reparación #${id_reparacion}?`)) {
-      finalizarMutation.mutate(id_reparacion);
+
+    // Validar que todos sus servicios esten finalizados para poder redirigir
+    const reparacion = reparaciones.find((rep) => rep.id_reparacion === id_reparacion);
+
+    const serviciosPendientes = reparacion.servicios_taller?.some((ser) => ser.estado !== 'finalizado');
+
+    if (serviciosPendientes) {
+      toast.error('No se puede finalizar la reparación porque no todos sus servicios están finalizados');
+      return;
     }
+
+    navigate(`/admin/taller/reparaciones/${id_reparacion}/devolver-insumos`);
   };
 
   // Filtrado de reparaciones
@@ -338,8 +322,7 @@ export const ReparacionPage = () => {
                           {isEnProceso && (
                             <button
                               onClick={() => handleFinalizar(reparacion.id_reparacion)}
-                              disabled={finalizarMutation.isPending}
-                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
                             >
                               <CheckCircle className="w-3.5 h-3.5" />
                               Finalizar
