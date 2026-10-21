@@ -5,6 +5,8 @@ import { RegisterPage } from './auth/pages/register/RegisterPage';
 import { ForgotPasswordPage } from './auth/pages/forgot-password/ForgotPasswordPage';
 import { DashboardPage } from './admin/pages/dashboard/DashboardPage';
 import { FinanzasPage } from './admin/pages/finanzas/FinanzasPage';
+import { CotizacionMenuPage } from './admin/pages/cotizaciones/CotizacionMenuPage';
+import { CotizacionPage } from './admin/pages/cotizaciones/CotizacionPage';
 import { PersonalMenuPage } from './admin/pages/personal/PersonalMenuPage';
 import { PersonalTallerPage } from './admin/pages/personal/PersonalTallerPage';
 import { PersonalTallerFormPage } from './admin/pages/personal/PersonalTallerFormPage';
@@ -107,12 +109,16 @@ export const appRouter = createBrowserRouter([
       },
       {
         path: 'cotizaciones', // ruta: admin/cotizaciones
-        element: (
-          <ModulePlaceholder
-            title="Cotizaciones"
-            description="Aprobación y control de presupuestos mediante CotizacionController."
-          />
-        ),
+        children: [
+          {
+            index: true, // ruta: admin/cotizaciones (Menú de selección con 1 card: Cotizaciones)
+            element: <CotizacionMenuPage />,
+          },
+          {
+            path: 'listado', // ruta: admin/cotizaciones/listado (Listado de cotizaciones)
+            element: <CotizacionPage />,
+          },
+        ]
       },
       {
         path: 'clientes',
