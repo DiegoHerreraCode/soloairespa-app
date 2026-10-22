@@ -50,7 +50,9 @@ import { CotizacionInicialVentaFormPage } from './admin/pages/cotizaciones/Cotiz
 import { CotizacionInicialRecambioFormPage } from './admin/pages/cotizaciones/CotizacionInicialRecambioFormPage';
 import { CotizacionInicialReparacionFormPage } from './admin/pages/cotizaciones/CotizacionInicialReparacionFormPage';
 import { CotizacionExtraFormPage } from './admin/pages/cotizaciones/CotizacionExtraFormPage';
-import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
+import { OrdenMenuPage } from './admin/pages/ordenes/OrdenMenuPage';
+import { TipoOrdenPage } from './admin/pages/ordenes/TipoOrdenPage';
+import { TipoOrdenFormPage } from './admin/pages/ordenes/TipoOrdenFormPage';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
 // Lazy loading de layouts
@@ -106,13 +108,25 @@ export const appRouter = createBrowserRouter([
         element: <DashboardPage />,
       },
       {
-        path: 'ordenes', // ruta: admin/ordenes
-        element: (
-          <ModulePlaceholder
-            title="Órdenes de Trabajo"
-            description="Gestión de OrdenController y TipoOrdenController."
-          />
-        ),
+        path: 'ordenes', // ruta: admin/cotizaciones
+        children: [
+          {
+            index: true, // ruta: admin/ordenes (Menú de selección con 2 card: Ordenes y Tipos de ordenes)
+            element: <OrdenMenuPage />,
+          },
+          {
+            path: 'listado', // ruta: admin/ordenes/listado (Listado de ordenes)
+            // element: <OrdenPage />,
+          },
+          {
+            path: 'tipos-ordenes', // ruta: admin/ordenes/tipos-ordenes (Listado de tipos de ordenes)
+            element: <TipoOrdenPage />,
+          },
+          {
+            path: 'tipos-ordenes/:id', // ruta: admin/ordenes/tipos-ordenes/:id (crear con 'new' o editar)
+            element: <TipoOrdenFormPage />,
+          },
+        ]
       },
       {
         path: 'cotizaciones', // ruta: admin/cotizaciones
