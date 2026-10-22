@@ -55,6 +55,7 @@ import { OrdenPage } from './admin/pages/ordenes/OrdenPage';
 import { OrdenDetallePage } from './admin/pages/ordenes/OrdenDetallePage';
 import { TipoOrdenPage } from './admin/pages/ordenes/TipoOrdenPage';
 import { TipoOrdenFormPage } from './admin/pages/ordenes/TipoOrdenFormPage';
+import { OrdenTypeSelectorPage } from './admin/pages/ordenes/OrdenTypeSelectorPage';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
 // Lazy loading de layouts
@@ -126,7 +127,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'new', // ruta: admin/ordenes/new (Menu de selección de tipo de orden)
-            // element: <OrdenTypeSelectorPage />,
+            element: <OrdenTypeSelectorPage />,
           },
           {
             path: 'new/venta', // ruta: admin/ordenes/new/venta (Formulario de orden de venta)

@@ -66,7 +66,7 @@ export const RecentOrdersTable = ({ ordenes }: Props) => {
         </div>
 
         <Button
-          onClick={() => navigate('/admin/ordenes')}
+          onClick={() => navigate('/admin/ordenes/listado')}
           variant="outline"
           size="sm"
           className="rounded-xl font-semibold shadow-xs hover:border-primary/50 text-xs px-3"
