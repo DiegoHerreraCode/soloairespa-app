@@ -31,8 +31,37 @@ export interface CreateCotizacionRecambioPayload {
   detalles_inventario: CreateCotizacionRecambioDetallePayload[];
 }
 
+export interface CreateCotizacionReparacionInsumoDetallePayload {
+  service_tag_repuesto_a_reparar: string;
+  id_inventario_insumo_saliente: number;
+  cantidad: number;
+  precio_unitario: number;
+  porcentaje_iva: number;
+}
+
+export interface CreateCotizacionReparacionServicioDetallePayload {
+  service_tag_repuesto_a_reparar: string;
+  id_servicio_taller: number;
+  cantidad: number;
+  precio_unitario: number;
+  porcentaje_iva: number;
+}
+
+export interface CreateCotizacionReparacionPayload {
+  id_cliente: number;
+  id_tipo_orden: number;
+  num_repuestos_a_reparar: number;
+  services_tags_repuestos_a_reparar: string[];
+  detalles_inventario: CreateCotizacionReparacionInsumoDetallePayload[];
+  detalles_servicios: CreateCotizacionReparacionServicioDetallePayload[];
+}
+
 export const createCotizacionAction = async (
-  payload: CreateCotizacionVentaPayload | CreateCotizacionRecambioPayload | Record<string, any>
+  payload:
+    | CreateCotizacionVentaPayload
+    | CreateCotizacionRecambioPayload
+    | CreateCotizacionReparacionPayload
+    | Record<string, any>
 ): Promise<CotizacionItem> => {
   const { data } = await apiClient.post<ApiResponse<CotizacionItem> | CotizacionItem>(
     '/cotizaciones',

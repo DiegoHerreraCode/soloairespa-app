@@ -48,6 +48,7 @@ import { CotizacionTypeSelectorPage } from './admin/pages/cotizaciones/Cotizacio
 import { CotizacionInicialTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionInicialTypeSelectorPage';
 import { CotizacionInicialVentaFormPage } from './admin/pages/cotizaciones/CotizacionInicialVentaFormPage';
 import { CotizacionInicialRecambioFormPage } from './admin/pages/cotizaciones/CotizacionInicialRecambioFormPage';
+import { CotizacionInicialReparacionFormPage } from './admin/pages/cotizaciones/CotizacionInicialReparacionFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -145,7 +146,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'new/inicial/reparacion', // ruta: admin/cotizaciones/new/inicial/reparacion (Formulario de cotización inicial de reparación)
-            // element: <CotizacionInicialReparacionFormPage />,
+            element: <CotizacionInicialReparacionFormPage />,
           },
           {
             path: 'new/extra', // ruta: admin/cotizaciones/new/extra (Formulario para crear cotización extra)
