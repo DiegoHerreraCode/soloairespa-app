@@ -47,6 +47,7 @@ import { DevolverInsumosPage } from './admin/pages/taller/DevolverInsumosPage';
 import { CotizacionTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionTypeSelectorPage';
 import { CotizacionInicialTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionInicialTypeSelectorPage';
 import { CotizacionInicialVentaFormPage } from './admin/pages/cotizaciones/CotizacionInicialVentaFormPage';
+import { CotizacionInicialRecambioFormPage } from './admin/pages/cotizaciones/CotizacionInicialRecambioFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -140,7 +141,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'new/inicial/recambio', // ruta: admin/cotizaciones/new/inicial/recambio (Formulario de cotización inicial de recambio)
-            // element: <CotizacionInicialRecambioFormPage />,
+            element: <CotizacionInicialRecambioFormPage />,
           },
           {
             path: 'new/inicial/reparacion', // ruta: admin/cotizaciones/new/inicial/reparacion (Formulario de cotización inicial de reparación)

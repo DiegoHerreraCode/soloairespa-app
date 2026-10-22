@@ -16,8 +16,23 @@ export interface CreateCotizacionVentaPayload {
   detalles_inventario: CreateCotizacionVentaDetallePayload[];
 }
 
+export interface CreateCotizacionRecambioDetallePayload {
+  id_inventario_repuesto_saliente: number;
+  id_inventario_repuesto_entrante: number;
+  cantidad: number;
+  precio_unitario: number;
+  monto_tasacion: number;
+  porcentaje_iva: number;
+}
+
+export interface CreateCotizacionRecambioPayload {
+  id_cliente: number;
+  id_tipo_orden: number;
+  detalles_inventario: CreateCotizacionRecambioDetallePayload[];
+}
+
 export const createCotizacionAction = async (
-  payload: CreateCotizacionVentaPayload | Record<string, any>
+  payload: CreateCotizacionVentaPayload | CreateCotizacionRecambioPayload | Record<string, any>
 ): Promise<CotizacionItem> => {
   const { data } = await apiClient.post<ApiResponse<CotizacionItem> | CotizacionItem>(
     '/cotizaciones',
