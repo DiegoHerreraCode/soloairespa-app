@@ -44,6 +44,8 @@ import { ReparacionPage } from './admin/pages/taller/ReparacionPage';
 import { ReparacionFormPage } from './admin/pages/taller/ReparacionFormPage';
 import { AsignarPersonalPage } from './admin/pages/taller/AsignarPersonalPage';
 import { DevolverInsumosPage } from './admin/pages/taller/DevolverInsumosPage';
+import { CotizacionTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionTypeSelectorPage';
+import { CotizacionInicialTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionInicialTypeSelectorPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -122,6 +124,18 @@ export const appRouter = createBrowserRouter([
           {
             path: ':id/aceptar', // ruta: admin/cotizaciones/:id/aceptar (Aceptar cotización según tipo de orden)
             element: <AceptarCotizacionPage />,
+          },
+          {
+            path: 'new', // ruta: admin/cotizaciones/new (Menu de selección de tipo de cotización)
+            element: <CotizacionTypeSelectorPage />,
+          },
+          {
+            path: 'new/inicial', // ruta: admin/cotizaciones/new/inicial (Menu de selección de tipo de cotización inicial)
+            element: <CotizacionInicialTypeSelectorPage />,
+          },
+          {
+            path: 'new/extra', // ruta: admin/cotizaciones/new/extra ()
+            // element: <CotizacionExtraTypeSelectorPage />,
           },
         ]
       },
