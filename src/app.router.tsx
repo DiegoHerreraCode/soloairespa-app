@@ -46,6 +46,7 @@ import { AsignarPersonalPage } from './admin/pages/taller/AsignarPersonalPage';
 import { DevolverInsumosPage } from './admin/pages/taller/DevolverInsumosPage';
 import { CotizacionTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionTypeSelectorPage';
 import { CotizacionInicialTypeSelectorPage } from './admin/pages/cotizaciones/CotizacionInicialTypeSelectorPage';
+import { CotizacionInicialVentaFormPage } from './admin/pages/cotizaciones/CotizacionInicialVentaFormPage';
 import { ModulePlaceholder } from './admin/pages/ModulePlaceholder';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
@@ -134,8 +135,20 @@ export const appRouter = createBrowserRouter([
             element: <CotizacionInicialTypeSelectorPage />,
           },
           {
-            path: 'new/extra', // ruta: admin/cotizaciones/new/extra ()
-            // element: <CotizacionExtraTypeSelectorPage />,
+            path: 'new/inicial/venta', // ruta: admin/cotizaciones/new/inicial/venta (Formulario de cotización inicial de venta)
+            element: <CotizacionInicialVentaFormPage />,
+          },
+          {
+            path: 'new/inicial/recambio', // ruta: admin/cotizaciones/new/inicial/recambio (Formulario de cotización inicial de recambio)
+            // element: <CotizacionInicialRecambioFormPage />,
+          },
+          {
+            path: 'new/inicial/reparacion', // ruta: admin/cotizaciones/new/inicial/reparacion (Formulario de cotización inicial de reparación)
+            // element: <CotizacionInicialReparacionFormPage />,
+          },
+          {
+            path: 'new/extra', // ruta: admin/cotizaciones/new/extra (Formulario para crear cotización extra)
+            // element: <CotizacionExtraFormPage />,
           },
         ]
       },

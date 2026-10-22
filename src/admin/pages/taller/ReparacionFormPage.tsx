@@ -328,6 +328,18 @@ export const ReparacionFormPage = () => {
   });
 
   // Funciones de cálculo matemático de líneas
+  const calcularCostoUnitarioBaseInsumo = (itemInv: InventarioItem): number => {
+    const compraProm = Number(itemInv.monto_compra_prom || itemInv.ultimo_monto_compra || 0);
+    const esUsado = (itemInv.condicion || '').toLowerCase().trim() === 'usado';
+
+    if (esUsado) {
+      const reparacionProm = Number(itemInv.monto_reparacion_prom || 0);
+      return Number((compraProm + reparacionProm).toFixed(2));
+    }
+
+    return Number(compraProm.toFixed(2));
+  };
+
   const calcularValoresInsumo = (
     itemInv: InventarioItem,
     cantidad: number,
@@ -335,7 +347,10 @@ export const ReparacionFormPage = () => {
     porcentajeGananciaInput?: number,
     costoConGananciaInput?: number
   ) => {
-    const costoUnit = costoUnitarioInput !== undefined ? costoUnitarioInput : Number(itemInv.monto_compra_prom || itemInv.ultimo_monto_compra || 0);
+    const costoUnit =
+      costoUnitarioInput !== undefined
+        ? costoUnitarioInput
+        : calcularCostoUnitarioBaseInsumo(itemInv);
 
     let pctGan = porcentajeGananciaInput !== undefined ? porcentajeGananciaInput : Number(itemInv.porcentaje_ganancia || 0);
     let costoConGan = 0;

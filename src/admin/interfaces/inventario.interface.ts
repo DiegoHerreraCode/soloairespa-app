@@ -13,6 +13,7 @@ export interface InventarioItem {
   porcentaje_ganancia?: number | string;
   monto_compra_prom?: number | string;
   ultimo_monto_compra?: number | string;
+  monto_reparacion_prom?: number | string;
   monto_venta_unitario?: number | string;
   created_at?: string;
   updated_at?: string;
