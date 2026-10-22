@@ -175,7 +175,11 @@ export const ReparacionFormPage = () => {
         const costoUnit = Number(ins.costo_unitario || 0);
         const costoConGan = Number(ins.costo_unitario_con_ganancia || 0);
         const pctIva = Number(ins.porcentaje_iva || 19);
-        const pctGan = Number(itemInv?.porcentaje_ganancia || 0);
+        // Si viene costo_unitario y costo_unitario_con_ganancia, calcular el pctGan exacto guardado
+        let pctGan = Number(itemInv?.porcentaje_ganancia || 0);
+        if (costoConGan > 0 && costoUnit > 0 && costoConGan >= costoUnit) {
+          pctGan = Number((((costoConGan - costoUnit) / costoConGan) * 100).toFixed(2));
+        }
 
         return {
           id_reparacion_insumo: ins.id_reparacion_insumo,
@@ -206,7 +210,10 @@ export const ReparacionFormPage = () => {
         const costoUnit = Number(srv.costo_unitario || 0);
         const costoConGan = Number(srv.costo_unitario_con_ganancia || 0);
         const pctIva = Number(srv.porcentaje_iva || 19);
-        const pctGan = Number(servCat?.porcentaje_ganancia || 0);
+        let pctGan = Number(servCat?.porcentaje_ganancia || 0);
+        if (costoConGan > 0 && costoUnit > 0 && costoConGan >= costoUnit) {
+          pctGan = Number((((costoConGan - costoUnit) / costoConGan) * 100).toFixed(2));
+        }
 
         return {
           id_reparacion_servicio_taller: srv.id_reparacion_servicio_taller,
@@ -321,12 +328,31 @@ export const ReparacionFormPage = () => {
   });
 
   // Funciones de cálculo matemático de líneas
-  const calcularValoresInsumo = (itemInv: InventarioItem, cantidad: number, costoUnitarioInput?: number) => {
+  const calcularValoresInsumo = (
+    itemInv: InventarioItem,
+    cantidad: number,
+    costoUnitarioInput?: number,
+    porcentajeGananciaInput?: number,
+    costoConGananciaInput?: number
+  ) => {
     const costoUnit = costoUnitarioInput !== undefined ? costoUnitarioInput : Number(itemInv.monto_compra_prom || itemInv.ultimo_monto_compra || 0);
-    const pctGan = Number(itemInv.porcentaje_ganancia || 0);
-    const costoConGan = (pctGan > 0 && pctGan < 100)
-      ? Number((costoUnit / (1 - (pctGan / 100))).toFixed(2))
-      : costoUnit;
+
+    let pctGan = porcentajeGananciaInput !== undefined ? porcentajeGananciaInput : Number(itemInv.porcentaje_ganancia || 0);
+    let costoConGan = 0;
+
+    if (costoConGananciaInput !== undefined) {
+      costoConGan = costoConGananciaInput;
+      if (costoConGan > 0 && costoUnit > 0) {
+        pctGan = Number((((costoConGan - costoUnit) / costoConGan) * 100).toFixed(2));
+      } else {
+        pctGan = 0;
+      }
+    } else {
+      costoConGan = (pctGan > 0 && pctGan < 100)
+        ? Number((costoUnit / (1 - (pctGan / 100))).toFixed(2))
+        : costoUnit;
+    }
+
     const montoTotalLinea = Number((cantidad * costoUnit).toFixed(2));
     const montoTotalLineaConGan = Number((cantidad * costoConGan).toFixed(2));
     const pctIva = Number(itemInv.porcentaje_iva !== undefined ? itemInv.porcentaje_iva : 19);
@@ -343,12 +369,31 @@ export const ReparacionFormPage = () => {
     };
   };
 
-  const calcularValoresServicio = (servCat: ServicioTallerItem, cantidad: number, costoUnitarioInput?: number) => {
+  const calcularValoresServicio = (
+    servCat: ServicioTallerItem,
+    cantidad: number,
+    costoUnitarioInput?: number,
+    porcentajeGananciaInput?: number,
+    costoConGananciaInput?: number
+  ) => {
     const costoUnit = costoUnitarioInput !== undefined ? costoUnitarioInput : Number(servCat.costo_base || 0);
-    const pctGan = Number(servCat.porcentaje_ganancia || 0);
-    const costoConGan = (pctGan > 0 && pctGan < 100)
-      ? Number((costoUnit / (1 - (pctGan / 100))).toFixed(2))
-      : costoUnit;
+
+    let pctGan = porcentajeGananciaInput !== undefined ? porcentajeGananciaInput : Number(servCat.porcentaje_ganancia || 0);
+    let costoConGan = 0;
+
+    if (costoConGananciaInput !== undefined) {
+      costoConGan = costoConGananciaInput;
+      if (costoConGan > 0 && costoUnit > 0) {
+        pctGan = Number((((costoConGan - costoUnit) / costoConGan) * 100).toFixed(2));
+      } else {
+        pctGan = 0;
+      }
+    } else {
+      costoConGan = (pctGan > 0 && pctGan < 100)
+        ? Number((costoUnit / (1 - (pctGan / 100))).toFixed(2))
+        : costoUnit;
+    }
+
     const montoTotalLinea = Number((cantidad * costoUnit).toFixed(2));
     const montoTotalLineaConGan = Number((cantidad * costoConGan).toFixed(2));
     const pctIva = Number(servCat.porcentaje_iva !== undefined ? servCat.porcentaje_iva : 19);
@@ -405,8 +450,12 @@ export const ReparacionFormPage = () => {
     setServiciosSeleccionados((prev) => [...prev, nuevaFila]);
   };
 
-  // Modificar cantidad o costo unitario de insumo
-  const handleActualizarInsumo = (index: number, campo: 'cantidad' | 'costo_unitario', valor: number) => {
+  // Modificar cantidad, porcentaje de ganancia o costo unitario con ganancia de insumo
+  const handleActualizarInsumo = (
+    index: number,
+    campo: 'cantidad' | 'porcentaje_ganancia' | 'costo_unitario_con_ganancia',
+    valor: number
+  ) => {
     setInsumosSeleccionados((prev) => {
       const actual = [...prev];
       const target = actual[index];
@@ -414,9 +463,17 @@ export const ReparacionFormPage = () => {
       if (!itemInv) return prev;
 
       const nuevaCantidad = campo === 'cantidad' ? Math.max(1, valor) : target.cantidad;
-      const nuevoCosto = campo === 'costo_unitario' ? Math.max(0, valor) : target.costo_unitario;
+      const nuevoPctGan = campo === 'porcentaje_ganancia' ? Math.max(0, Math.min(99.99, valor)) : undefined;
+      const nuevoCostoConGan = campo === 'costo_unitario_con_ganancia' ? Math.max(0, valor) : undefined;
 
-      const nuevosCalculos = calcularValoresInsumo(itemInv, nuevaCantidad, nuevoCosto);
+      const nuevosCalculos = calcularValoresInsumo(
+        itemInv,
+        nuevaCantidad,
+        target.costo_unitario, // costo_unitario se mantiene fijo
+        nuevoPctGan !== undefined ? nuevoPctGan : (campo === 'costo_unitario_con_ganancia' ? undefined : target.porcentaje_ganancia),
+        nuevoCostoConGan
+      );
+
       actual[index] = {
         ...target,
         cantidad: nuevaCantidad,
@@ -426,8 +483,12 @@ export const ReparacionFormPage = () => {
     });
   };
 
-  // Modificar cantidad o costo unitario de servicio
-  const handleActualizarServicio = (index: number, campo: 'cantidad' | 'costo_unitario', valor: number) => {
+  // Modificar cantidad, porcentaje de ganancia o costo unitario con ganancia de servicio
+  const handleActualizarServicio = (
+    index: number,
+    campo: 'cantidad' | 'porcentaje_ganancia' | 'costo_unitario_con_ganancia',
+    valor: number
+  ) => {
     setServiciosSeleccionados((prev) => {
       const actual = [...prev];
       const target = actual[index];
@@ -435,9 +496,17 @@ export const ReparacionFormPage = () => {
       if (!servCat) return prev;
 
       const nuevaCantidad = campo === 'cantidad' ? Math.max(1, valor) : target.cantidad;
-      const nuevoCosto = campo === 'costo_unitario' ? Math.max(0, valor) : target.costo_unitario;
+      const nuevoPctGan = campo === 'porcentaje_ganancia' ? Math.max(0, Math.min(99.99, valor)) : undefined;
+      const nuevoCostoConGan = campo === 'costo_unitario_con_ganancia' ? Math.max(0, valor) : undefined;
 
-      const nuevosCalculos = calcularValoresServicio(servCat, nuevaCantidad, nuevoCosto);
+      const nuevosCalculos = calcularValoresServicio(
+        servCat,
+        nuevaCantidad,
+        target.costo_unitario, // costo_unitario se mantiene fijo
+        nuevoPctGan !== undefined ? nuevoPctGan : (campo === 'costo_unitario_con_ganancia' ? undefined : target.porcentaje_ganancia),
+        nuevoCostoConGan
+      );
+
       actual[index] = {
         ...target,
         cantidad: nuevaCantidad,
@@ -734,28 +803,46 @@ export const ReparacionFormPage = () => {
                             <span className="font-semibold text-foreground text-xs">{ins.cantidad}</span>
                           )}
                         </td>
+                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                          ${Number(ins.costo_unitario).toFixed(2)}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
+                          ${Number(ins.monto_total_linea).toFixed(2)}
+                        </td>
                         <td className="py-2.5 px-3 font-mono text-xs">
                           {!isReadOnly ? (
-                            <input
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={ins.costo_unitario}
-                              onChange={(e) => handleActualizarInsumo(idx, 'costo_unitario', Number(e.target.value))}
-                              className="w-24 px-1.5 py-1 text-xs rounded border border-border/80 bg-background text-foreground font-mono"
-                            />
+                            <div className="inline-flex items-center gap-1 justify-center">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99.99}
+                                step="any"
+                                value={ins.porcentaje_ganancia}
+                                onChange={(e) => handleActualizarInsumo(idx, 'porcentaje_ganancia', Number(e.target.value))}
+                                className="w-16 px-1.5 py-1 text-xs text-right rounded border border-border/80 bg-background text-foreground font-mono"
+                              />
+                              <span className="text-muted-foreground text-xs">%</span>
+                            </div>
                           ) : (
-                            <span>${Number(ins.costo_unitario).toFixed(1)}</span>
+                            <span>{Number(ins.porcentaje_ganancia).toFixed(1)}%</span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
-                          ${Number(ins.monto_total_linea).toFixed(1)}
-                        </td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
-                          {Number(ins.porcentaje_ganancia).toFixed(1)}%
-                        </td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
-                          ${Number(ins.costo_unitario_con_ganancia).toFixed(2)}
+                        <td className="py-2.5 px-3 font-mono text-xs">
+                          {!isReadOnly ? (
+                            <div className="inline-flex items-center gap-1 justify-center">
+                              <span className="text-muted-foreground text-xs">$</span>
+                              <input
+                                type="number"
+                                min={0}
+                                step="any"
+                                value={ins.costo_unitario_con_ganancia}
+                                onChange={(e) => handleActualizarInsumo(idx, 'costo_unitario_con_ganancia', Number(e.target.value))}
+                                className="w-24 px-1.5 py-1 text-xs rounded border border-border/80 bg-background text-foreground font-mono"
+                              />
+                            </div>
+                          ) : (
+                            <span>${Number(ins.costo_unitario_con_ganancia).toFixed(2)}</span>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 font-mono text-xs font-semibold text-foreground">
                           ${Number(ins.monto_total_linea_con_ganancia).toFixed(2)}
@@ -900,28 +987,46 @@ export const ReparacionFormPage = () => {
                             <span className="font-semibold text-foreground text-xs">{srv.cantidad}</span>
                           )}
                         </td>
+                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                          ${Number(srv.costo_unitario).toFixed(2)}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
+                          ${Number(srv.monto_total_linea).toFixed(2)}
+                        </td>
                         <td className="py-2.5 px-3 font-mono text-xs">
                           {!isReadOnly ? (
-                            <input
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={srv.costo_unitario}
-                              onChange={(e) => handleActualizarServicio(idx, 'costo_unitario', Number(e.target.value))}
-                              className="w-24 px-1.5 py-1 text-xs rounded border border-border/80 bg-background text-foreground font-mono"
-                            />
+                            <div className="inline-flex items-center gap-1 justify-center">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99.99}
+                                step="any"
+                                value={srv.porcentaje_ganancia}
+                                onChange={(e) => handleActualizarServicio(idx, 'porcentaje_ganancia', Number(e.target.value))}
+                                className="w-16 px-1.5 py-1 text-xs text-right rounded border border-border/80 bg-background text-foreground font-mono"
+                              />
+                              <span className="text-muted-foreground text-xs">%</span>
+                            </div>
                           ) : (
-                            <span>${Number(srv.costo_unitario).toFixed(1)}</span>
+                            <span>{Number(srv.porcentaje_ganancia).toFixed(1)}%</span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
-                          ${Number(srv.monto_total_linea).toFixed(1)}
-                        </td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
-                          {Number(srv.porcentaje_ganancia).toFixed(1)}%
-                        </td>
-                        <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
-                          ${Number(srv.costo_unitario_con_ganancia).toFixed(2)}
+                        <td className="py-2.5 px-3 font-mono text-xs">
+                          {!isReadOnly ? (
+                            <div className="inline-flex items-center gap-1 justify-center">
+                              <span className="text-muted-foreground text-xs">$</span>
+                              <input
+                                type="number"
+                                min={0}
+                                step="any"
+                                value={srv.costo_unitario_con_ganancia}
+                                onChange={(e) => handleActualizarServicio(idx, 'costo_unitario_con_ganancia', Number(e.target.value))}
+                                className="w-24 px-1.5 py-1 text-xs rounded border border-border/80 bg-background text-foreground font-mono"
+                              />
+                            </div>
+                          ) : (
+                            <span>${Number(srv.costo_unitario_con_ganancia).toFixed(2)}</span>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 font-mono text-xs font-semibold text-foreground">
                           ${Number(srv.monto_total_linea_con_ganancia).toFixed(2)}
