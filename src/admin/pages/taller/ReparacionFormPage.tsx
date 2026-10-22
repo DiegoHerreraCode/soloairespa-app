@@ -1071,6 +1071,10 @@ export const ReparacionFormPage = () => {
                             <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                               finalizado
                             </span>
+                          ) : srv.estado === 'anulado' ? (
+                            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-600 dark:text-red-400">
+                              anulado
+                            </span>
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
                           )}

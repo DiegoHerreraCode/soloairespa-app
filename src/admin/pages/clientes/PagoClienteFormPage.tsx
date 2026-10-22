@@ -74,6 +74,13 @@ export const PagoClienteFormPage = () => {
       return;
     }
 
+    // validar que el monto sea exactamente igual al monto pendiente de la orden
+    const orden = ordenes.find((o) => o.id_orden === Number(idOrden));
+    if (orden && Number(monto) !== Number(orden.monto_pendiente)) {
+      toast.warning('El monto debe ser exactamente igual al monto pendiente de la orden');
+      return;
+    }
+
     if (metodoPago === 'transferencia' && !selectedImage) {
       toast.warning('Se requiere adjuntar el comprobante para pagos por transferencia');
       return;

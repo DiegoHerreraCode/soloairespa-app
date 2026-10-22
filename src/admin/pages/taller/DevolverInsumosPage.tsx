@@ -16,6 +16,7 @@ import {
   finalizarReparacionAction,
   type InsumoDevueltoPayload,
 } from '../../actions/finalizar-reparacion.action';
+import { anularOrdenAction } from '../../actions/anular-orden.action';
 
 interface FilaInsumoDevolver {
   id_reparacion_insumo: number;
@@ -150,21 +151,72 @@ export const DevolverInsumosPage = () => {
     },
   });
 
-  // Guardar (Finaliza la reparación)
-  const handleGuardar = () => {
-    if (esAnulacionOrden && !motivoAnulacion.trim()) {
-      toast.warning('Por favor ingresa el motivo de la anulación');
-      return;
-    }
+  // Mutación para anular la orden de reparación
+  const anularOrdenMutation = useMutation({
+    mutationFn: async ({
+      idOrden,
+      motivo,
+      insumos,
+    }: {
+      idOrden: string | number;
+      motivo: string;
+      insumos: InsumoDevueltoPayload[];
+    }) => {
+      return anularOrdenAction(idOrden, {
+        motivo_anulacion: motivo,
+        insumos_devueltos: insumos,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Orden de reparación anulada exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['ordenes-listado'] });
+      queryClient.invalidateQueries({ queryKey: ['reparaciones-listado'] });
+      queryClient.invalidateQueries({ queryKey: ['repuestos-listado'] });
+      queryClient.invalidateQueries({ queryKey: ['inventario-listado'] });
+      navigate('/admin/ordenes/listado');
+    },
+    onError: (error: any) => {
+      const errors = error.response?.data?.errors;
+      if (errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0];
+        const firstMsg = errors[firstKey][0];
+        toast.error(firstMsg);
+        return;
+      }
+      const msg = error.response?.data?.message || 'Error al anular la orden de reparación';
+      toast.error(msg);
+    },
+  });
 
+  // Guardar (Finaliza la reparación o Anula la orden)
+  const handleGuardar = () => {
     const payload: InsumoDevueltoPayload[] = insumosFilas.map((f) => ({
       id_reparacion_insumo: f.id_reparacion_insumo,
       cantidad_sobrante: f.cantidad_sobrante,
     }));
 
+    if (esAnulacionOrden) {
+      if (!motivoAnulacion.trim()) {
+        toast.warning('Por favor ingresa el motivo de la anulación');
+        return;
+      }
+      const idOrdenTarget = searchParams.get('id_orden') || reparacion?.id_orden;
+      if (!idOrdenTarget) {
+        toast.error('No se encontró el ID de la orden a anular');
+        return;
+      }
+      anularOrdenMutation.mutate({
+        idOrden: idOrdenTarget,
+        motivo: motivoAnulacion.trim(),
+        insumos: payload,
+      });
+      return;
+    }
+
     finalizarMutation.mutate(payload);
   };
 
+  const isSaving = finalizarMutation.isPending || anularOrdenMutation.isPending;
   const isLoading = isLoadingReparacion || isLoadingInsumosPivote || isLoadingInventario;
 
   if (isLoading) {
@@ -190,7 +242,7 @@ export const DevolverInsumosPage = () => {
         </div>
 
         <Link
-          to="/admin/taller/reparaciones"
+          to={esAnulacionOrden ? '/admin/ordenes/listado' : '/admin/taller/reparaciones'}
           className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -276,7 +328,7 @@ export const DevolverInsumosPage = () => {
         <button
           type="button"
           onClick={handleSobroTodo}
-          disabled={insumosFilas.length === 0 || finalizarMutation.isPending}
+          disabled={insumosFilas.length === 0 || isSaving}
           className="px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-all cursor-pointer disabled:opacity-40 flex items-center gap-2"
         >
           <RotateCcw className="w-4 h-4" />
@@ -286,7 +338,7 @@ export const DevolverInsumosPage = () => {
         <button
           type="button"
           onClick={handleNoSobroNada}
-          disabled={insumosFilas.length === 0 || finalizarMutation.isPending}
+          disabled={insumosFilas.length === 0 || isSaving}
           className="px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 hover:bg-sky-500/20 transition-all cursor-pointer disabled:opacity-40 flex items-center gap-2"
         >
           <PackageCheck className="w-4 h-4" />
@@ -296,18 +348,22 @@ export const DevolverInsumosPage = () => {
         <button
           type="button"
           onClick={handleGuardar}
-          disabled={finalizarMutation.isPending}
-          className="px-8 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+          disabled={isSaving}
+          className={`px-8 py-2.5 text-xs sm:text-sm font-bold rounded-xl text-white shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2 ${
+            esAnulacionOrden
+              ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20'
+              : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
+          }`}
         >
-          {finalizarMutation.isPending ? (
+          {isSaving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              <span>Guardando...</span>
+              <span>{esAnulacionOrden ? 'Anulando Orden...' : 'Guardando...'}</span>
             </>
           ) : (
             <>
               <Check className="w-4 h-4" />
-              <span>Guardar</span>
+              <span>{esAnulacionOrden ? 'Confirmar Anulación' : 'Guardar'}</span>
             </>
           )}
         </button>

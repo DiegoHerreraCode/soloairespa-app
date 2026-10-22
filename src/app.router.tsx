@@ -51,6 +51,8 @@ import { CotizacionInicialRecambioFormPage } from './admin/pages/cotizaciones/Co
 import { CotizacionInicialReparacionFormPage } from './admin/pages/cotizaciones/CotizacionInicialReparacionFormPage';
 import { CotizacionExtraFormPage } from './admin/pages/cotizaciones/CotizacionExtraFormPage';
 import { OrdenMenuPage } from './admin/pages/ordenes/OrdenMenuPage';
+import { OrdenPage } from './admin/pages/ordenes/OrdenPage';
+import { OrdenDetallePage } from './admin/pages/ordenes/OrdenDetallePage';
 import { TipoOrdenPage } from './admin/pages/ordenes/TipoOrdenPage';
 import { TipoOrdenFormPage } from './admin/pages/ordenes/TipoOrdenFormPage';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
@@ -116,7 +118,27 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'listado', // ruta: admin/ordenes/listado (Listado de ordenes)
-            // element: <OrdenPage />,
+            element: <OrdenPage />,
+          },
+          {
+            path: 'listado/:id', // ruta: admin/ordenes/listado/:id (modo detalle solo lectura)
+            element: <OrdenDetallePage />,
+          },
+          {
+            path: 'new', // ruta: admin/ordenes/new (Menu de selección de tipo de orden)
+            // element: <OrdenTypeSelectorPage />,
+          },
+          {
+            path: 'new/venta', // ruta: admin/ordenes/new/venta (Formulario de orden de venta)
+            // element: <OrdenVentaFormPage />,
+          },
+          {
+            path: 'new/recambio', // ruta: admin/ordenes/new/recambio (Formulario de orden de recambio)
+            // element: <OrdenRecambioFormPage />,
+          },
+          {
+            path: 'new/reparacion', // ruta: admin/ordenes/new/reparacion (Formulario de orden de reparación)
+            // element: <OrdenReparacionFormPage />,
           },
           {
             path: 'tipos-ordenes', // ruta: admin/ordenes/tipos-ordenes (Listado de tipos de ordenes)
