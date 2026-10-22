@@ -921,6 +921,17 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
                     type="text"
                     value={busquedaSkuInsumo}
                     onChange={(e) => setBusquedaSkuInsumo(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const item = insumosCatalogo.find(i => i.sku?.trim().toUpperCase() === busquedaSkuInsumo.trim().toUpperCase());
+                        if (item) {
+                          handleAgregarInsumo(item);
+                        } else {
+                          toast.error('No se encontró el insumo');
+                        }
+                      }
+                    }}
                     placeholder="Filtrar insumo..."
                     className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   />

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Receipt, ArrowRight, ArrowLeft, FileText } from 'lucide-react';
+import { Receipt, ArrowRight, ArrowLeft, FileText, PlusCircle } from 'lucide-react';
 
 export const CotizacionTypeSelectorPage = () => {
   return (
@@ -61,7 +61,7 @@ export const CotizacionTypeSelectorPage = () => {
         >
           {/* Círculo central con ícono */}
           <div className="w-28 h-28 rounded-full bg-blue-500/10 border-2 border-blue-500/20 group-hover:border-blue-500/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-105 shadow-inner">
-            <Receipt className="w-12 h-12 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+            <PlusCircle className="w-12 h-12 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
           </div>
 
           {/* Texto del Card */}
