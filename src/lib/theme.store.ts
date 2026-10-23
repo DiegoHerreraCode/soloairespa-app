@@ -8,8 +8,18 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
+// Leer tema guardado al inicializar
+const savedTheme: Theme = (localStorage.getItem('theme') as Theme) || 'light';
+
+// Sincronizar la clase CSS con el tema guardado (refuerzo del inline script en index.html)
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('dark');
+} else {
+  document.documentElement.classList.remove('dark');
+}
+
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: (localStorage.getItem('theme') as Theme) || 'light',
+  theme: savedTheme,
 
   toggleTheme: () => {
     const nextTheme = get().theme === 'light' ? 'dark' : 'light';
