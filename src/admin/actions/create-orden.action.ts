@@ -51,8 +51,26 @@ export interface CreateOrdenRecambioPayload {
   detalles: CreateOrdenRecambioDetallePayload[];
 }
 
+// Repuestos entrantes para orden de reparación
+export interface CreateOrdenRepuestoEntrantePayload {
+  id_inventario: number;
+  serial: string;
+  service_tag: string;
+}
+
+export interface CreateOrdenReparacionPayload {
+  id_cliente: number;
+  id_tipo_orden: number;
+  fecha_entrega_reparacion: string;
+  repuestos_entrantes: CreateOrdenRepuestoEntrantePayload[];
+}
+
 export const createOrdenAction = async (
-  payload: CreateOrdenVentaPayload | CreateOrdenRecambioPayload | Record<string, any>
+  payload:
+    | CreateOrdenVentaPayload
+    | CreateOrdenRecambioPayload
+    | CreateOrdenReparacionPayload
+    | Record<string, any>
 ): Promise<OrdenItem> => {
   const { data } = await apiClient.post<ApiResponse<OrdenItem> | OrdenItem>(
     '/ordenes',

@@ -58,6 +58,7 @@ import { TipoOrdenFormPage } from './admin/pages/ordenes/TipoOrdenFormPage';
 import { OrdenTypeSelectorPage } from './admin/pages/ordenes/OrdenTypeSelectorPage';
 import { OrdenVentaFormPage } from './admin/pages/ordenes/OrdenVentaFormPage';
 import { OrdenRecambioFormPage } from './admin/pages/ordenes/OrdenRecambioFormPage';
+import { OrdenReparacionFormPage } from './admin/pages/ordenes/OrdenReparacionFormPage';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
 // Lazy loading de layouts
@@ -141,7 +142,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'new/reparacion', // ruta: admin/ordenes/new/reparacion (Formulario de orden de reparación)
-            // element: <OrdenReparacionFormPage />,
+            element: <OrdenReparacionFormPage />,
           },
           {
             path: 'tipos-ordenes', // ruta: admin/ordenes/tipos-ordenes (Listado de tipos de ordenes)
