@@ -494,7 +494,7 @@ export const OrdenVentaFormPage: React.FC = () => {
             required
             className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium cursor-pointer"
           >
-            <option value="">Seleccione al Cliente ∨</option>
+            <option value="">Seleccione al Cliente</option>
             {clientes.map((c) => (
               <option key={c.id_cliente} value={c.id_cliente}>
                 {c.nombre} {c.rut ? `(${c.rut})` : ''}

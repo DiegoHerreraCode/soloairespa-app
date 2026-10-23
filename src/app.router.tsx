@@ -57,6 +57,7 @@ import { TipoOrdenPage } from './admin/pages/ordenes/TipoOrdenPage';
 import { TipoOrdenFormPage } from './admin/pages/ordenes/TipoOrdenFormPage';
 import { OrdenTypeSelectorPage } from './admin/pages/ordenes/OrdenTypeSelectorPage';
 import { OrdenVentaFormPage } from './admin/pages/ordenes/OrdenVentaFormPage';
+import { OrdenRecambioFormPage } from './admin/pages/ordenes/OrdenRecambioFormPage';
 import { AuthenticatedRoute, NotAuthenticatedRoute } from './components/routes/ProtectedRoutes';
 
 // Lazy loading de layouts
@@ -136,7 +137,7 @@ export const appRouter = createBrowserRouter([
           },
           {
             path: 'new/recambio', // ruta: admin/ordenes/new/recambio (Formulario de orden de recambio)
-            // element: <OrdenRecambioFormPage />,
+            element: <OrdenRecambioFormPage />,
           },
           {
             path: 'new/reparacion', // ruta: admin/ordenes/new/reparacion (Formulario de orden de reparación)
