@@ -196,6 +196,13 @@ export const OrdenPage = () => {
     fechaHastaFilter,
   ]);
 
+  // Ordenar el arreglo FilteredOrdenes por el campo last_update de forma descendente
+  filteredOrdenes.sort((a: OrdenItem, b: OrdenItem) => {
+    if (a.last_update < b.last_update) return 1;
+    if (a.last_update > b.last_update) return -1;
+    return 0;
+  });
+
   // Cálculo de páginas
   const totalPages = Math.ceil(filteredOrdenes.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);
@@ -434,12 +441,12 @@ export const OrdenPage = () => {
                       </td>
 
                       {/* nombre (del cliente) */}
-                      <td className="py-3 px-3 font-medium text-foreground">
+                      <td className="py-3 px-3 font-medium text-foreground text-center">
                         {cliente?.nombre || '-'}
                       </td>
 
                       {/* rut (del cliente) */}
-                      <td className="py-3 px-3 font-mono text-muted-foreground">
+                      <td className="py-3 px-3 font-mono text-muted-foreground text-center">
                         {cliente?.rut || '-'}
                       </td>
 
@@ -463,12 +470,12 @@ export const OrdenPage = () => {
                       </td>
 
                       {/* monto total */}
-                      <td className="py-3 px-3 text-right font-bold text-foreground font-mono">
+                      <td className="py-3 px-3 text-center font-bold text-foreground font-mono">
                         ${formatMoney(orden.monto_total)}
                       </td>
 
                       {/* monto pendiente */}
-                      <td className="py-3 px-3 text-right font-bold font-mono text-rose-600 dark:text-rose-400">
+                      <td className="py-3 px-3 text-center font-bold font-mono text-rose-600 dark:text-rose-400">
                         ${formatMoney(orden.monto_pendiente ?? 0)}
                       </td>
 

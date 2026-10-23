@@ -356,11 +356,11 @@ export const CotizacionPage = () => {
           <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[850px]">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">num_cotizacion</th>
+                <th className="py-3 px-4 text-center">num_cotizacion</th>
                 <th className="py-3 px-4 text-center">tipo de orden</th>
                 <th className="py-3 px-4 text-center">tipo</th>
-                <th className="py-3 px-4">fecha_creacion</th>
-                <th className="py-3 px-4">fecha_vencimiento</th>
+                <th className="py-3 px-4 text-center">fecha_creacion</th>
+                <th className="py-3 px-4 text-center">fecha_vencimiento</th>
                 <th className="py-3 px-4 text-center">estado</th>
                 <th className="py-3 px-4 text-center">acciones</th>
               </tr>
@@ -394,7 +394,7 @@ export const CotizacionPage = () => {
                   return (
                     <tr key={cot.id_cotizacion} className="hover:bg-accent/40 transition-colors">
                       {/* num_cotizacion */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
                         {cot.num_cotizacion}
                       </td>
 
@@ -417,12 +417,12 @@ export const CotizacionPage = () => {
                       </td>
 
                       {/* fecha_creacion */}
-                      <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap text-center">
                         {cot.fecha_creacion}
                       </td>
 
                       {/* fecha_vencimiento */}
-                      <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap text-center">
                         {cot.fecha_vencimiento}
                       </td>
 
