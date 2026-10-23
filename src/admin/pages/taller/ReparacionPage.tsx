@@ -20,7 +20,9 @@ export const ReparacionPage = () => {
   const navigate = useNavigate();
   const { reparaciones, repuestos, isLoading } = useReparaciones();
 
-  // Opciones de filtrado por id_orden, asociación a orden, estado, fecha desde y fecha hasta
+  // Opciones de filtrado por id_reparacion, id_orden, asociación a orden, estado, fecha desde y fecha hasta
+
+  const [idReparacionFilter, setIdReparacionFilter] = useState('');
   const [idOrdenFilter, setIdOrdenFilter] = useState('');
   const [ordenAsociadaFilter, setOrdenAsociadaFilter] = useState<'all' | 'con_orden' | 'sin_orden'>('all');
   const [estadoFilter, setEstadoFilter] = useState<'all' | 'pendiente' | 'en_proceso' | 'finalizada' | 'anulada'>('all');
@@ -57,6 +59,15 @@ export const ReparacionPage = () => {
   // Filtrado de reparaciones
   const filteredReparaciones = useMemo(() => {
     return reparaciones.filter((rep: ReparacionItem) => {
+
+      // 0. Filtro por id_reparacion escrito
+      if (idReparacionFilter.trim()) {
+        const queryReparacion = idReparacionFilter.trim();
+        if (!rep.id_reparacion || !String(rep.id_reparacion).includes(queryReparacion)) {
+          return false;
+        }
+      }
+
       // 1. Filtro por id_orden escrito
       if (idOrdenFilter.trim()) {
         const queryOrden = idOrdenFilter.trim();
@@ -96,7 +107,7 @@ export const ReparacionPage = () => {
 
       return true;
     });
-  }, [reparaciones, idOrdenFilter, ordenAsociadaFilter, estadoFilter, fechaDesde, fechaHasta]);
+  }, [reparaciones, idReparacionFilter, idOrdenFilter, ordenAsociadaFilter, estadoFilter, fechaDesde, fechaHasta]);
 
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredReparaciones.length / itemsPerPage) || 1;
@@ -145,7 +156,22 @@ export const ReparacionPage = () => {
           Filtros de Búsqueda
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {/* Filtro por id_reparacion */}
+          <div>
+            <input
+              type="number"
+              min={1}
+              value={idReparacionFilter}
+              onChange={(e) => {
+                setIdReparacionFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar por id_reparacion..."
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-mono"
+            />
+          </div>
+
           {/* Filtro por id_orden */}
           <div>
             <input
@@ -231,18 +257,19 @@ export const ReparacionPage = () => {
           <table className="w-full text-left text-xs sm:text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">id_orden</th>
-                <th className="py-3 px-4">service_tag</th>
+                <th className="py-3 px-4 text-center">id_reparacion</th>
+                <th className="py-3 px-4 text-center">id_orden</th>
+                <th className="py-3 px-4 text-center">service_tag</th>
                 <th className="py-3 px-4 text-center">estado</th>
-                <th className="py-3 px-4">fecha inicio</th>
-                <th className="py-3 px-4">fecha fin</th>
+                <th className="py-3 px-4 text-center">fecha inicio</th>
+                <th className="py-3 px-4 text-center">fecha fin</th>
                 <th className="py-3 px-4 text-center">acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                       Cargando listado de reparaciones...
@@ -251,7 +278,7 @@ export const ReparacionPage = () => {
                 </tr>
               ) : paginatedReparaciones.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
                     <Wrench className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
                     No se encontraron reparaciones con los filtros seleccionados
                   </td>
@@ -267,8 +294,12 @@ export const ReparacionPage = () => {
                       key={reparacion.id_reparacion}
                       className="hover:bg-accent/40 transition-colors"
                     >
+                      {/* id_reparacion */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
+                        {reparacion.id_reparacion}
+                      </td>
                       {/* id_orden */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
                         {reparacion.id_orden ? (
                           <span>{reparacion.id_orden}</span>
                         ) : (
@@ -277,7 +308,7 @@ export const ReparacionPage = () => {
                       </td>
 
                       {/* service_tag */}
-                      <td className="py-3.5 px-4 font-mono text-foreground font-semibold">
+                      <td className="py-3.5 px-4 font-mono text-foreground font-semibold text-center">
                         {serviceTag}
                       </td>
 

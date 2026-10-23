@@ -145,7 +145,7 @@ export const PagoCompraPage = () => {
                 setIdCompraFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="N° de Compra..."
+              placeholder="ID Compra..."
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
             />
           </div>
@@ -203,14 +203,14 @@ export const PagoCompraPage = () => {
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">id_compra</th>
-                <th className="py-3 px-4">nombre (del proveedor)</th>
-                <th className="py-3 px-4">rut (del proveedor)</th>
+                <th className="py-3 px-4 text-center">id_compra</th>
+                <th className="py-3 px-4 text-center">nombre (del proveedor)</th>
+                <th className="py-3 px-4 text-center">rut (del proveedor)</th>
                 <th className="py-3 px-4 text-center">porcentaje monto total (%)</th>
-                <th className="py-3 px-4 text-right">monto ($)</th>
-                <th className="py-3 px-4 text-right">abono al bien ($)</th>
-                <th className="py-3 px-4 text-right">abono al iva ($)</th>
-                <th className="py-3 px-4">fecha pago acordada</th>
+                <th className="py-3 px-4 text-center">monto ($)</th>
+                <th className="py-3 px-4 text-center">abono al bien ($)</th>
+                <th className="py-3 px-4 text-center">abono al iva ($)</th>
+                <th className="py-3 px-4 text-center">fecha pago acordada</th>
                 <th className="py-3 px-4 text-center">estado</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
@@ -253,42 +253,42 @@ export const PagoCompraPage = () => {
                       className="hover:bg-accent/40 transition-colors"
                     >
                       {/* id_compra */}
-                      <td className="py-3.5 px-4 font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-bold text-foreground text-center">
                         #{pago.id_compra}
                       </td>
 
                       {/* nombre (del proveedor) */}
-                      <td className="py-3.5 px-4 font-medium text-foreground">
+                      <td className="py-3.5 px-4 font-medium text-foreground text-center">
                         {nombreProveedor}
                       </td>
 
                       {/* rut (del proveedor) */}
-                      <td className="py-3.5 px-4 text-muted-foreground">
+                      <td className="py-3.5 px-4 text-muted-foreground text-center">
                         {rutProveedor}
                       </td>
 
                       {/* porcentaje monto total (%) */}
-                      <td className="py-3.5 px-4 text-center font-semibold text-foreground">
+                      <td className="py-3.5 px-4 font-semibold text-foreground text-center">
                         {porcentaje}
                       </td>
 
                       {/* monto ($) */}
-                      <td className="py-3.5 px-4 text-right font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-bold text-foreground text-center">
                         ${montoNum.toLocaleString('es-CL')}
                       </td>
 
                       {/* abono al bien */}
-                      <td className="py-3.5 px-4 text-right text-muted-foreground">
+                      <td className="py-3.5 px-4 text-muted-foreground text-center">
                         ${abonoBien.toLocaleString('es-CL')}
                       </td>
 
                       {/* abono al iva */}
-                      <td className="py-3.5 px-4 text-right text-muted-foreground">
+                      <td className="py-3.5 px-4 text-muted-foreground text-center">
                         ${abonoIva.toLocaleString('es-CL')}
                       </td>
 
                       {/* fecha pago acordada */}
-                      <td className="py-3.5 px-4 text-muted-foreground">
+                      <td className="py-3.5 px-4 text-muted-foreground text-center">
                         {fechaAcordada}
                       </td>
 

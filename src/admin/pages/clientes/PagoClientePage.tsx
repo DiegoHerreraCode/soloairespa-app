@@ -177,7 +177,7 @@ export const PagoClientePage = () => {
                 setIdOrdenFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="N° de Orden..."
+              placeholder="ID Orden..."
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
             />
           </div>
@@ -390,8 +390,8 @@ export const PagoClientePage = () => {
               key={pageNum}
               onClick={() => setCurrentPage(pageNum)}
               className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${validCurrentPage === pageNum
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-card border border-border/80 text-foreground hover:bg-accent'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-card border border-border/80 text-foreground hover:bg-accent'
                 }`}
             >
               {pageNum}

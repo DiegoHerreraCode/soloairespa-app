@@ -18,9 +18,10 @@ export const CompraPage = () => {
   const navigate = useNavigate();
   const { compras, proveedores, isLoading } = useCompras();
 
-  // Estados de filtrado: nombre, rut, id_compra, estado, tipo_pago, fecha desde y fecha hasta
+  // Estados de filtrado: nombre, rut, id_compra, num_factura_boleta, estado, tipo_pago, fecha desde y fecha hasta
   const [searchTerm, setSearchTerm] = useState('');
   const [idCompraFilter, setIdCompraFilter] = useState('');
+  const [numFacturaBoletaFilter, setNumFacturaBoletaFilter] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<'all' | 'por_pagar' | 'pagada_parcial' | 'pagada'>('all');
   const [tipoPagoFilter, setTipoPagoFilter] = useState<'all' | 'contado' | 'credito'>('all');
   const [fechaDesde, setFechaDesde] = useState('');
@@ -55,17 +56,26 @@ export const CompraPage = () => {
         return false;
       }
 
-      // 3. Filtro por estado
+      // 3. Filtro por num_factura_boleta
+      if (
+        numFacturaBoletaFilter.trim() &&
+        c.num_factura_boleta &&
+        !String(c.num_factura_boleta).toLowerCase().includes(numFacturaBoletaFilter.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // 4. Filtro por estado
       if (estadoFilter !== 'all' && c.estado !== estadoFilter) {
         return false;
       }
 
-      // 4. Filtro por tipo de pago
+      // 5. Filtro por tipo de pago
       if (tipoPagoFilter !== 'all' && c.tipo_pago !== tipoPagoFilter) {
         return false;
       }
 
-      // 5. Filtro por fechas
+      // 6. Filtro por fechas
       const fechaLimpia = c.fecha_compra ? c.fecha_compra.split('T')[0].split(' ')[0] : '';
       if (fechaDesde && fechaLimpia && fechaLimpia < fechaDesde) {
         return false;
@@ -76,7 +86,7 @@ export const CompraPage = () => {
 
       return true;
     });
-  }, [compras, proveedoresMap, searchTerm, idCompraFilter, estadoFilter, tipoPagoFilter, fechaDesde, fechaHasta]);
+  }, [compras, proveedoresMap, searchTerm, idCompraFilter, numFacturaBoletaFilter, estadoFilter, tipoPagoFilter, fechaDesde, fechaHasta]);
 
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredCompras.length / itemsPerPage) || 1;
@@ -150,13 +160,27 @@ export const CompraPage = () => {
                 setIdCompraFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="N° de Compra..."
+              placeholder="ID Compra..."
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+            />
+          </div>
+
+          {/* Filtro por Num Factura Boleta */}
+          <div className="lg:col-span-2">
+            <input
+              type="text"
+              value={numFacturaBoletaFilter}
+              onChange={(e) => {
+                setNumFacturaBoletaFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="N° Factura/Boleta..."
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
             />
           </div>
 
           {/* Filtro por Tipo de Pago */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <select
               value={tipoPagoFilter}
               onChange={(e) => {
@@ -172,7 +196,7 @@ export const CompraPage = () => {
           </div>
 
           {/* Filtro por Estado */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <select
               value={estadoFilter}
               onChange={(e) => {
@@ -225,14 +249,14 @@ export const CompraPage = () => {
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">id_compra</th>
-                <th className="py-3 px-4">nombre (del proveedor)</th>
-                <th className="py-3 px-4">rut (del proveedor)</th>
-                <th className="py-3 px-4">num factura boleta</th>
+                <th className="py-3 px-4 text-center">id_compra</th>
+                <th className="py-3 px-4 text-center">nombre (del proveedor)</th>
+                <th className="py-3 px-4 text-center">rut (del proveedor)</th>
+                <th className="py-3 px-4 text-center">num factura boleta</th>
                 <th className="py-3 px-4 text-center">Tipo de pago</th>
-                <th className="py-3 px-4 text-right">monto total</th>
-                <th className="py-3 px-4 text-right">monto pendiente</th>
-                <th className="py-3 px-4">fecha</th>
+                <th className="py-3 px-4 text-center">monto total</th>
+                <th className="py-3 px-4 text-center">monto pendiente</th>
+                <th className="py-3 px-4 text-center">fecha</th>
                 <th className="py-3 px-4 text-center">estado</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
@@ -269,22 +293,22 @@ export const CompraPage = () => {
                       className="hover:bg-accent/40 transition-colors"
                     >
                       {/* id_compra */}
-                      <td className="py-3.5 px-4 font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-bold text-foreground text-center">
                         #{compra.id_compra}
                       </td>
 
                       {/* nombre (del proveedor) */}
-                      <td className="py-3.5 px-4 font-medium text-foreground">
+                      <td className="py-3.5 px-4 font-medium text-foreground text-center">
                         {nombreProveedor}
                       </td>
 
                       {/* rut (del proveedor) */}
-                      <td className="py-3.5 px-4 text-muted-foreground">
+                      <td className="py-3.5 px-4 text-muted-foreground text-center">
                         {rutProveedor}
                       </td>
 
                       {/* num factura boleta */}
-                      <td className="py-3.5 px-4 font-mono text-foreground font-semibold">
+                      <td className="py-3.5 px-4 font-mono text-foreground font-semibold text-center">
                         {compra.num_factura_boleta}
                       </td>
 
@@ -296,17 +320,17 @@ export const CompraPage = () => {
                       </td>
 
                       {/* monto total */}
-                      <td className="py-3.5 px-4 text-right font-bold text-foreground">
+                      <td className={`py-3.5 px-4 font-bold text-foreground text-center`}>
                         ${montoTotal.toLocaleString('es-CL')}
                       </td>
 
                       {/* monto pendiente */}
-                      <td className="py-3.5 px-4 text-right font-bold text-rose-500 dark:text-rose-400">
+                      <td className={`py-3.5 px-4 font-bold text-rose-500 dark:text-rose-400 text-center`}>
                         ${montoPendiente.toLocaleString('es-CL')}
                       </td>
 
                       {/* fecha */}
-                      <td className="py-3.5 px-4 text-muted-foreground">
+                      <td className="py-3.5 px-4 text-muted-foreground text-center">
                         {fechaStr}
                       </td>
 
@@ -364,11 +388,10 @@ export const CompraPage = () => {
             <button
               key={pageNum}
               onClick={() => setCurrentPage(pageNum)}
-              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${
-                validCurrentPage === pageNum
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-card border border-border/80 text-foreground hover:bg-accent'
-              }`}
+              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${validCurrentPage === pageNum
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-card border border-border/80 text-foreground hover:bg-accent'
+                }`}
             >
               {pageNum}
             </button>
