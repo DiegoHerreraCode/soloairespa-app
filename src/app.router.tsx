@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { lazy } from 'react';
 import { LoginPage } from './auth/pages/login/LoginPage';
-import { RegisterPage } from './auth/pages/register/RegisterPage';
 import { ForgotPasswordPage } from './auth/pages/forgot-password/ForgotPasswordPage';
 import { DashboardPage } from './admin/pages/dashboard/DashboardPage';
 import { FinanzasPage } from './admin/pages/finanzas/FinanzasPage';
@@ -88,10 +87,6 @@ export const appRouter = createBrowserRouter([
       {
         path: 'login', // ruta: auth/login
         element: <LoginPage />,
-      },
-      {
-        path: 'register', // ruta: auth/register
-        element: <RegisterPage />,
       },
       {
         path: 'forgot-password', // ruta: auth/forgot-password

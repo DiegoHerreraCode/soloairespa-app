@@ -96,16 +96,6 @@ export const LoginPage = () => {
               >
                 {isPosting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
-
-              <div className="text-center text-sm text-muted-foreground">
-                ¿No tienes una cuenta?{' '}
-                <Link
-                  to="/auth/register"
-                  className="font-semibold text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
-                >
-                  Regístrate
-                </Link>
-              </div>
             </div>
           </form>
 
@@ -121,7 +111,7 @@ export const LoginPage = () => {
               </div>
               <h2 className="text-2xl font-bold tracking-tight mb-2">SoloAireSPA</h2>
               <p className="text-sm text-slate-300 max-w-xs leading-relaxed">
-                Sistema centralizado para climatización, órdenes técnicas, inventarios y cotizaciones.
+                Sistema centralizado para órdenes técnicas, inventarios y cotizaciones.
               </p>
             </div>
           </div>
