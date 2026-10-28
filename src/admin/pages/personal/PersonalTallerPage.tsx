@@ -62,6 +62,13 @@ export const PersonalTallerPage = () => {
     });
   }, [personal, searchTerm, disponibleFilter, deletedFilter]);
 
+  // Ordenar el arreglo filteredPersonal por el campo id_personal de forma descendente
+  filteredPersonal.sort((a: PersonalItem, b: PersonalItem) => {
+    if (a.id_personal < b.id_personal) return 1;
+    if (a.id_personal > b.id_personal) return -1;
+    return 0;
+  });
+
   // Cálculo de páginas
   const totalPages = Math.ceil(filteredPersonal.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

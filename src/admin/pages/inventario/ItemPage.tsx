@@ -67,6 +67,13 @@ export const ItemPage = () => {
     });
   }, [items, skuFilter, nombreFilter, tipoFilter, condicionFilter]);
 
+  // Ordenar el arreglo FilteredItems por el campo id_inventario de forma descendente
+  filteredItems.sort((a: InventarioItem, b: InventarioItem) => {
+    if (a.id_inventario < b.id_inventario) return 1;
+    if (a.id_inventario > b.id_inventario) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

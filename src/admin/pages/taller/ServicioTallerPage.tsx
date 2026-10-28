@@ -50,6 +50,13 @@ export const ServicioTallerPage = () => {
     });
   }, [serviciosTaller, tiposServiciosMap, tipoServicioFilter, nombreServicioFilter]);
 
+  // Ordenar el arreglo filteredServicios por el campo id_servicio_taller de forma descendente
+  filteredServicios.sort((a: ServicioTallerItem, b: ServicioTallerItem) => {
+    if (a.id_servicio_taller < b.id_servicio_taller) return 1;
+    if (a.id_servicio_taller > b.id_servicio_taller) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredServicios.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

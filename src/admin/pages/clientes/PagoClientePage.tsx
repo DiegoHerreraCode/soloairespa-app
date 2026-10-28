@@ -85,6 +85,13 @@ export const PagoClientePage = () => {
     });
   }, [pagos, clientesMap, searchTerm, idOrdenFilter, estadoFilter, metodoPagoFilter, fechaDesde, fechaHasta]);
 
+  // Ordenar el arreglo FilteredPagos por el campo id_pago_cliente de forma descendente
+  filteredPagos.sort((a: PagoClienteItem, b: PagoClienteItem) => {
+    if (a.id_pago_cliente < b.id_pago_cliente) return 1;
+    if (a.id_pago_cliente > b.id_pago_cliente) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredPagos.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

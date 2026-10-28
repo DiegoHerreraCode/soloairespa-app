@@ -35,6 +35,13 @@ export const MarcaPage = () => {
     });
   }, [marcas, marcaFilter]);
 
+  // Ordenar el arreglo FilteredMarcas por el campo id_marca de forma descendente
+  filteredMarcas.sort((a: MarcaItem, b: MarcaItem) => {
+    if (a.id_marca < b.id_marca) return 1;
+    if (a.id_marca > b.id_marca) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredMarcas.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

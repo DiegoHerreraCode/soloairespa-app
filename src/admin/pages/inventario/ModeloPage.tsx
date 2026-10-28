@@ -50,6 +50,13 @@ export const ModeloPage = () => {
     });
   }, [modelos, marcasMap, marcaFilter, modeloFilter]);
 
+  // Ordenar el arreglo FilteredModelos por el campo id_modelo de forma descendente
+  filteredModelos.sort((a: ModeloItem, b: ModeloItem) => {
+    if (a.id_modelo < b.id_modelo) return 1;
+    if (a.id_modelo > b.id_modelo) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredModelos.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

@@ -21,7 +21,7 @@ export const TipoServicioTallerPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
 
-  // Filtrado de modelos
+  // Filtrado de tipos de servicios del taller
   const filteredTiposServiciosTaller = useMemo(() => {
     return tiposServiciosTaller.filter((tipoServicioTaller: TipoServicioTallerItem) => {
       const nombreTipoServicio = (tipoServicioTaller.nombre || '').toLowerCase();
@@ -34,6 +34,14 @@ export const TipoServicioTallerPage = () => {
       return true;
     });
   }, [tiposServiciosTaller, nombreTipoServicioFilter]);
+
+  // Ordenar el arreglo filteredTiposServiciosTaller por el campo id_tipo_servicio_taller de forma descendente
+  filteredTiposServiciosTaller.sort((a: TipoServicioTallerItem, b: TipoServicioTallerItem) => {
+    if (a.id_tipo_servicio_taller < b.id_tipo_servicio_taller) return 1;
+    if (a.id_tipo_servicio_taller > b.id_tipo_servicio_taller) return -1;
+    return 0;
+  });
+
 
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredTiposServiciosTaller.length / itemsPerPage) || 1;

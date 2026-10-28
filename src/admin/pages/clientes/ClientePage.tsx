@@ -42,6 +42,13 @@ export const ClientePage = () => {
     });
   }, [clientes, searchTerm]);
 
+  // Ordenar el arreglo FilteredClientes por el campo id_cliente de forma descendente
+  filteredClientes.sort((a: ClienteItem, b: ClienteItem) => {
+    if (a.id_cliente < b.id_cliente) return 1;
+    if (a.id_cliente > b.id_cliente) return -1;
+    return 0;
+  });
+
   // Cálculo de páginas
   const totalPages = Math.ceil(filteredClientes.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);
@@ -213,11 +220,10 @@ export const ClientePage = () => {
             <button
               key={pageNum}
               onClick={() => setCurrentPage(pageNum)}
-              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${
-                validCurrentPage === pageNum
+              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${validCurrentPage === pageNum
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-card border border-border/80 text-foreground hover:bg-accent'
-              }`}
+                }`}
             >
               {pageNum}
             </button>

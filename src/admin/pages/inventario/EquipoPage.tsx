@@ -133,6 +133,13 @@ export const EquipoPage = () => {
     disponibleFilter,
   ]);
 
+  // Ordenar el arreglo filteredEquipos por el campo id_equipo de forma descendente
+  filteredEquipos.sort((a: EquipoItem, b: EquipoItem) => {
+    if (a.id_equipo < b.id_equipo) return 1;
+    if (a.id_equipo > b.id_equipo) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredEquipos.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

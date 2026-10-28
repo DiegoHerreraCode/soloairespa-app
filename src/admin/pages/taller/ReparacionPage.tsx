@@ -109,6 +109,13 @@ export const ReparacionPage = () => {
     });
   }, [reparaciones, idReparacionFilter, idOrdenFilter, ordenAsociadaFilter, estadoFilter, fechaDesde, fechaHasta]);
 
+  // Ordenar el arreglo filteredReparaciones por el campo id_reparacion de forma descendente
+  filteredReparaciones.sort((a: ReparacionItem, b: ReparacionItem) => {
+    if (a.id_reparacion < b.id_reparacion) return 1;
+    if (a.id_reparacion > b.id_reparacion) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredReparaciones.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

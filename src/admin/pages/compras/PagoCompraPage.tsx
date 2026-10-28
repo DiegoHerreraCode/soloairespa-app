@@ -80,6 +80,13 @@ export const PagoCompraPage = () => {
     });
   }, [pagosCompras, comprasMap, proveedoresMap, searchTerm, idCompraFilter, estadoFilter, fechaDesde, fechaHasta]);
 
+  // Ordenar el arreglo FilteredPagos por el campo id_pago_compra de forma descendente
+  filteredPagos.sort((a: PagoCompraItem, b: PagoCompraItem) => {
+    if (a.id_pago_compra < b.id_pago_compra) return 1;
+    if (a.id_pago_compra > b.id_pago_compra) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación
   const totalPages = Math.ceil(filteredPagos.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);

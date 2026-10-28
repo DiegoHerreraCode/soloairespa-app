@@ -43,6 +43,13 @@ export const AdministradoresPage = () => {
     });
   }, [admins, searchTerm]);
 
+  // Ordenar el arreglo filteredAdmins por el campo id_admin de forma descendente
+  filteredAdmins.sort((a: AdminItem, b: AdminItem) => {
+    if (a.id_admin < b.id_admin) return 1;
+    if (a.id_admin > b.id_admin) return -1;
+    return 0;
+  });
+
   // Cálculo de páginas
   const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);
@@ -214,11 +221,10 @@ export const AdministradoresPage = () => {
             <button
               key={pageNum}
               onClick={() => setCurrentPage(pageNum)}
-              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${
-                validCurrentPage === pageNum
+              className={`w-8 h-8 text-xs font-semibold rounded-lg transition-all ${validCurrentPage === pageNum
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'bg-card border border-border/80 text-foreground hover:bg-accent'
-              }`}
+                }`}
             >
               {pageNum}
             </button>

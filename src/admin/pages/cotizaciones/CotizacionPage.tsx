@@ -206,6 +206,13 @@ export const CotizacionPage = () => {
     tiposOrdenesMap,
   ]);
 
+  // Ordenar el arreglo FilteredCotizaciones por el campo id_cotizacion de forma descendente
+  filteredCotizaciones.sort((a: CotizacionItem, b: CotizacionItem) => {
+    if (a.id_cotizacion < b.id_cotizacion) return 1;
+    if (a.id_cotizacion > b.id_cotizacion) return -1;
+    return 0;
+  });
+
   // Cálculo de paginación (máximo 7 filas por página)
   const totalPages = Math.ceil(filteredCotizaciones.length / itemsPerPage) || 1;
   const validCurrentPage = Math.min(currentPage, totalPages);
