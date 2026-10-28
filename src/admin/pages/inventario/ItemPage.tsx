@@ -7,8 +7,12 @@ import {
   Filter,
   Edit2,
   Package,
+  FileSpreadsheet,
+  Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getInventarioAction } from '../../actions/get-inventario.action';
+import { exportInventarioExcelAction } from '../../actions/export-inventario-excel.action';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 
 export const ItemPage = () => {
@@ -29,6 +33,7 @@ export const ItemPage = () => {
 
   // Paginación: Máximo 7 filas por página según el boceto
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const itemsPerPage = 7;
 
   // Filtrado de ítems
@@ -82,6 +87,29 @@ export const ItemPage = () => {
     const startIndex = (validCurrentPage - 1) * itemsPerPage;
     return filteredItems.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredItems, validCurrentPage, itemsPerPage]);
+
+
+  // Metodo para exportar el listado filtrado de items a un archivo excel
+  const handleExportToExcel = async () => {
+    try {
+      setIsExporting(true);
+      toast.loading('Generando archivo Excel...', { id: 'export-excel' });
+
+      await exportInventarioExcelAction({
+        sku: skuFilter,
+        nombre: nombreFilter,
+        tipo: tipoFilter,
+        condicion: condicionFilter,
+      });
+
+      toast.success('Archivo Excel descargado con éxito', { id: 'export-excel' });
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error);
+      toast.error('No se pudo generar el archivo Excel. Inténtalo nuevamente.', { id: 'export-excel' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -185,6 +213,25 @@ export const ItemPage = () => {
             </select>
           </div>
         </div>
+
+        {/* boton de color verde oscuro premium para descargar como excel */}
+        <button
+          onClick={handleExportToExcel}
+          disabled={isExporting}
+          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer inline-flex items-center justify-center gap-2"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Exportando...</span>
+            </>
+          ) : (
+            <>
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Descargar como excel</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* 3. TABLA DE ITEMS */}
@@ -299,5 +346,4 @@ export const ItemPage = () => {
     </div>
   );
 };
-
 export default ItemPage;
