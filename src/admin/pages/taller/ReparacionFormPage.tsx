@@ -1270,7 +1270,7 @@ export const ReparacionFormPage = () => {
             >
               {isSaving ? 'Registrando...' : 'Registrar Reparación'}
             </button>
-          ) : isReadOnly && reparacionData.estado != 'finalizada' && reparacionData.estado != 'anulada' ? (
+          ) : isReadOnly && reparacionData?.estado != 'finalizada' && reparacionData?.estado != 'anulada' ? (
             <button
               type="button"
               onClick={() => setIsEditingDirecto(true)}
@@ -1298,7 +1298,7 @@ export const ReparacionFormPage = () => {
               </button>
             </div>
           ) : (
-            <span className="px-4 py-3 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground">Reparación {reparacionData.estado}</span>
+            <span className="px-4 py-3 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground">Reparación {reparacionData?.estado}</span>
           )
           }
         </div>

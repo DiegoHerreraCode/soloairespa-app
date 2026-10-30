@@ -46,7 +46,7 @@ export const ReparacionPage = () => {
     // Validar que todos sus servicios esten finalizados para poder redirigir
     const reparacion = reparaciones.find((rep) => rep.id_reparacion === id_reparacion);
 
-    const serviciosPendientes = reparacion.servicios_taller?.some((ser) => ser.estado !== 'finalizado');
+    const serviciosPendientes = reparacion?.servicios_taller?.some((ser) => ser.estado !== 'finalizado');
 
     if (serviciosPendientes) {
       toast.error('No se puede finalizar la reparación porque no todos sus servicios están finalizados');
