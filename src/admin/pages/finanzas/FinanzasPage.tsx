@@ -54,10 +54,10 @@ export const FinanzasPage = () => {
     return cleanDate >= fechaDesde && cleanDate <= fechaHasta;
   };
 
-  // 1. INGRESOS TOTALES: pagos registrados por los clientes no anulados en el rango
+  // 1. INGRESOS TOTALES: pagos registrados por los clientes con estado 'completado' en el rango
   const pagosClientesFiltrados = useMemo(() => {
     return pagosClientes.filter(
-      (p) => p.estado !== 'anulado' && isInRange(p.fecha_pago)
+      (p) => p.estado === 'completado' && isInRange(p.fecha_pago)
     );
   }, [pagosClientes, fechaDesde, fechaHasta]);
 
@@ -147,23 +147,29 @@ export const FinanzasPage = () => {
       : '0.0';
 
   // 4. IVA ACUMULADO (PERÍODO) =
-  //    monto_total_iva (ordenes con estado_administrativo = 'pagada' en el rango)
+  //    IVA recaudado a través de pagos de clientes con estado 'completado' en el rango (fecha_pago)
   //    - sumatoria abono_al_iva (pagos_compras con estado 'realizado' en el rango)
-  const ordenesPagadas = useMemo(() => {
-    return ordenes.filter(
-      (o) =>
-        o.estado_administrativo === 'pagada' &&
-        o.estado_operativo !== 'anulada' &&
-        isInRange(o.fecha_creacion)
-    );
-  }, [ordenes, fechaDesde, fechaHasta]);
-
   const ivaVentas = useMemo(() => {
-    return ordenesPagadas.reduce(
-      (sum, o) => sum + Number(o.monto_total_iva || 0),
-      0
-    );
-  }, [ordenesPagadas]);
+    return pagosClientesFiltrados.reduce((sum, pago) => {
+      const orden = ordenesMap.get(pago.id_orden);
+      if (!orden || orden.estado_operativo === 'anulada') return sum;
+
+      const totalOrden = Number(orden.monto_total || 0);
+      const ivaOrden = Number(orden.monto_total_iva || 0);
+      const montoPago = Number(pago.monto || 0);
+
+      // Si el cliente paga al contado (el total), el IVA recaudado es el total del IVA de la orden.
+      // Si pagase una porción, se calcula la proporción exacta correspondiente al IVA.
+      if (totalOrden > 0 && ivaOrden > 0) {
+        if (montoPago >= totalOrden) {
+          return sum + ivaOrden;
+        }
+        return sum + (montoPago * (ivaOrden / totalOrden));
+      }
+
+      return sum;
+    }, 0);
+  }, [pagosClientesFiltrados, ordenesMap]);
 
   const ivaCompras = useMemo(() => {
     return pagosComprasRealizados.reduce(
