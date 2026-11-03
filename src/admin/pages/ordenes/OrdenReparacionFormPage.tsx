@@ -8,11 +8,13 @@ import {
   X,
   Loader2,
   Calendar,
+  Copy,
 } from 'lucide-react';
 
 import { getClientesAction } from '@/admin/actions/get-clientes.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { getTiposOrdenesAction } from '@/admin/actions/get-tipos-ordenes.action';
+import { getRepuestosAction } from '@/admin/actions/get-repuestos.action';
 import {
   createOrdenAction,
   type CreateOrdenReparacionPayload,
@@ -21,6 +23,8 @@ import {
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
 import type { TipoOrdenItem } from '@/admin/interfaces/tipo-orden.interface';
+import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
+import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 
 // Cada bloque/fila de repuesto entrante según el boceto:
 // [ id_inventario ] [ serial ] [ service_tag ] [ X ]
@@ -53,21 +57,42 @@ export const OrdenReparacionFormPage: React.FC = () => {
     queryFn: getTiposOrdenesAction,
   });
 
+  // 3.1 Cargar repuestos existentes en BD para garantizar unicidad global de service_tag
+  const { data: repuestosStock = [] } = useQuery<RepuestoItem[]>({
+    queryKey: ['repuestos-stock'],
+    queryFn: getRepuestosAction,
+  });
+
+  // Conjunto de service_tags existentes en base de datos
+  const existingServiceTagsSet = useMemo(() => {
+    const set = new Set<string>();
+    repuestosStock.forEach((r) => {
+      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
+    });
+    return set;
+  }, [repuestosStock]);
+
   // Estado del cliente seleccionado
   const [idCliente, setIdCliente] = useState<number | ''>('');
 
   // Fecha estimada de entrega de reparación
   const [fechaEntregaReparacion, setFechaEntregaReparacion] = useState<string>('');
 
+  // Estado para el serial de "Aplicar a todos" en la orden de reparación
+  const [bulkSerialOrden, setBulkSerialOrden] = useState<string>('');
+
   // Repuestos entrantes inicializados con 1 fila por defecto según el boceto
-  const [repuestosEntrantes, setRepuestosEntrantes] = useState<RepuestoEntranteFila[]>([
-    {
-      id: crypto.randomUUID(),
-      id_inventario: '',
-      serial: '',
-      service_tag: '',
-    },
-  ]);
+  const [repuestosEntrantes, setRepuestosEntrantes] = useState<RepuestoEntranteFila[]>(() => {
+    const defaultTag = generarServiceTagUnico('compresor');
+    return [
+      {
+        id: crypto.randomUUID(),
+        id_inventario: '',
+        serial: defaultTag,
+        service_tag: defaultTag,
+      },
+    ];
+  });
 
   // Catálogo permitido para reparación en taller: compresores y válvulas
   const inventarioPermitido = useMemo(() => {
@@ -83,17 +108,46 @@ export const OrdenReparacionFormPage: React.FC = () => {
     return tipo ? tipo.id_tipo_orden : 2;
   }, [tiposOrdenes]);
 
+  // Obtener un conjunto combinado de service_tags actuales (BD + filas)
+  const getCombinedServiceTagsSet = () => {
+    const set = new Set<string>(existingServiceTagsSet);
+    repuestosEntrantes.forEach((r) => {
+      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
+    });
+    return set;
+  };
+
   // Agregar una nueva fila de repuesto entrante (+)
   const handleAgregarFila = () => {
+    const currentTags = getCombinedServiceTagsSet();
+    const defaultTag = generarServiceTagUnico('compresor', currentTags);
     setRepuestosEntrantes((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
         id_inventario: '',
-        serial: '',
-        service_tag: '',
+        serial: defaultTag,
+        service_tag: defaultTag,
       },
     ]);
+  };
+
+  // Aplicar serial masivo a todas las filas de la orden de reparación
+  const handleApplySerialToAll = () => {
+    const val = bulkSerialOrden.trim();
+    if (!val) {
+      toast.warning('Ingresa un serial para aplicar a todas las piezas');
+      return;
+    }
+
+    setRepuestosEntrantes((prev) =>
+      prev.map((r) => ({
+        ...r,
+        serial: val,
+      }))
+    );
+
+    toast.success(`Serial "${val}" aplicado a todas las piezas`);
   };
 
   // Remover fila de repuesto entrante (X)
@@ -284,18 +338,40 @@ export const OrdenReparacionFormPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. REPUESTOS ENTRANTES (Según boceto: con botón + al lado) */}
+        {/* 3. REPUESTOS ENTRANTES (Según boceto: con botón + al lado y Aplicar a Todos) */}
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-foreground">Repuestos Entrantes</h2>
-            <button
-              type="button"
-              onClick={handleAgregarFila}
-              className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer flex items-center justify-center"
-              title="Agregar otro repuesto entrante"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-foreground">Repuestos Entrantes</h2>
+              <button
+                type="button"
+                onClick={handleAgregarFila}
+                className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer flex items-center justify-center"
+                title="Agregar otro repuesto entrante"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input y Botón Aplicar a Todos */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Serial a aplicar a todos..."
+                value={bulkSerialOrden}
+                onChange={(e) => setBulkSerialOrden(e.target.value)}
+                className="w-48 px-3 py-1.5 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+              <button
+                type="button"
+                onClick={handleApplySerialToAll}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                title="Aplica este serial a todas las piezas entrantes"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Aplicar a todos
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">

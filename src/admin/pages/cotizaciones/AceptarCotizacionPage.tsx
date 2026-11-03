@@ -12,12 +12,14 @@ import {
   Loader2,
   ShieldCheck,
   AlertTriangle,
+  Copy,
 } from 'lucide-react';
 
 import { getCotizacionByIdAction } from '@/admin/actions/get-cotizacion-by-id.action';
 import { getRepuestosAction } from '@/admin/actions/get-repuestos.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { aceptarCotizacionAction } from '@/admin/actions/aceptar-cotizacion.action';
+import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 import type {
   CotizacionItem,
   CotizacionDetalleInventarioItem,
@@ -92,7 +94,7 @@ export const AceptarCotizacionPage: React.FC = () => {
       setRepuestosEntrantesReparacion(
         tags.map((tag) => ({
           service_tag: tag,
-          serial: '',
+          serial: tag, // Precargar serial por defecto con el service_tag
           id_inventario: '',
         }))
       );
@@ -190,6 +192,112 @@ export const AceptarCotizacionPage: React.FC = () => {
     }
     return map;
   }, [repuestos]);
+
+  // Conjunto de service_tags existentes en base de datos
+  const existingServiceTagsSet = useMemo(() => {
+    const set = new Set<string>();
+    repuestos.forEach((r) => {
+      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
+    });
+    return set;
+  }, [repuestos]);
+
+  // Estados para "Aplicar a todos" en seriales
+  const [bulkSerialRecambio, setBulkSerialRecambio] = useState<string>('');
+  const [bulkSerialReparacion, setBulkSerialReparacion] = useState<string>('');
+
+  // Auto-precargar service_tag y serial para ítems de recambio inicial
+  React.useEffect(() => {
+    if (tipoCotizacion === 'inicial' && tipoOrdenNombre === 'recambio' && itemsRecambioUnitarios.length > 0) {
+      setRecambioDetalles((prev) => {
+        const next = { ...prev };
+        let hasChanges = false;
+        const currentTags = new Set<string>(existingServiceTagsSet);
+
+        // Registrar los tags ya presentes en el estado
+        Object.values(next).forEach((d) => {
+          if (d?.service_tag_entrante) currentTags.add(d.service_tag_entrante.toLowerCase().trim());
+        });
+
+        itemsRecambioUnitarios.forEach((item) => {
+          if (!next[item.unitIndex]) {
+            const itemInv = inventario.find((i) => i.id_inventario === item.id_inventario);
+            const tag = generarServiceTagUnico(itemInv?.tipo || 'compresor', currentTags);
+            next[item.unitIndex] = {
+              id_repuesto_saliente: '',
+              serial_entrante: tag,
+              service_tag_entrante: tag,
+            };
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? next : prev;
+      });
+    }
+  }, [tipoCotizacion, tipoOrdenNombre, itemsRecambioUnitarios, existingServiceTagsSet, inventario]);
+
+  // Auto-precargar serial con el valor del service_tag para reparación inicial si estuvieran vacíos
+  React.useEffect(() => {
+    if (tipoCotizacion === 'inicial' && tipoOrdenNombre === 'reparacion') {
+      setRepuestosEntrantesReparacion((prev) => {
+        let hasChanges = false;
+        const updated = prev.map((item) => {
+          if (!item.serial && item.service_tag) {
+            hasChanges = true;
+            return { ...item, serial: item.service_tag };
+          }
+          return item;
+        });
+        return hasChanges ? updated : prev;
+      });
+    }
+  }, [tipoCotizacion, tipoOrdenNombre]);
+
+  // Aplicar serial masivo a todas las unidades de recambio entrante
+  const handleApplySerialToRecambio = () => {
+    const val = bulkSerialRecambio.trim();
+    if (!val) {
+      toast.warning('Ingresa un serial para aplicar a todas las piezas entrantes de recambio');
+      return;
+    }
+
+    setRecambioDetalles((prev) => {
+      const updated = { ...prev };
+      itemsRecambioUnitarios.forEach((item) => {
+        const actual = updated[item.unitIndex] || {
+          id_repuesto_saliente: '',
+          serial_entrante: '',
+          service_tag_entrante: '',
+        };
+        updated[item.unitIndex] = {
+          ...actual,
+          serial_entrante: val,
+        };
+      });
+      return updated;
+    });
+
+    toast.success(`Serial "${val}" aplicado a todas las piezas entrantes de recambio`);
+  };
+
+  // Aplicar serial masivo a todos los equipos de reparación
+  const handleApplySerialToReparacion = () => {
+    const val = bulkSerialReparacion.trim();
+    if (!val) {
+      toast.warning('Ingresa un serial para aplicar a todos los equipos a reparar');
+      return;
+    }
+
+    setRepuestosEntrantesReparacion((prev) =>
+      prev.map((r) => ({
+        ...r,
+        serial: val,
+      }))
+    );
+
+    toast.success(`Serial "${val}" aplicado a todos los equipos a reparar`);
+  };
 
   // Mutación para Aceptar Cotización
   const aceptarMutation = useMutation({
@@ -531,12 +639,36 @@ export const AceptarCotizacionPage: React.FC = () => {
             ============================================================ */}
         {tipoCotizacion === 'inicial' && tipoOrdenNombre === 'recambio' && (
           <div className="space-y-4">
-            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3 text-dark-700 dark:text-dark-300">
-              <RefreshCw className="w-5 h-5 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm leading-relaxed">
-                <span className="font-bold">Intercambio de Piezas:</span> Por cada unidad de repuesto en recambio,
-                asigna la pieza física del taller que sale e ingresa el serial y tag de servicio de la pieza usada que el cliente entrega.
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3 text-dark-700 dark:text-dark-300 flex-1">
+                <RefreshCw className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                <div className="text-xs sm:text-sm leading-relaxed">
+                  <span className="font-bold">Intercambio de Piezas:</span> Por cada unidad de repuesto en recambio,
+                  asigna la pieza física del taller que sale e ingresa el serial y tag de servicio de la pieza usada que el cliente entrega.
+                </div>
               </div>
+
+              {/* Botón Aplicar a Todos para serial entrante */}
+              {itemsRecambioUnitarios.length > 0 && (
+                <div className="flex items-center gap-2 shrink-0 bg-card p-3 rounded-xl border border-border/80">
+                  <input
+                    type="text"
+                    placeholder="Serial a aplicar a todos..."
+                    value={bulkSerialRecambio}
+                    onChange={(e) => setBulkSerialRecambio(e.target.value)}
+                    className="w-44 px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplySerialToRecambio}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                    title="Aplica este serial a todas las piezas entrantes de recambio"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Aplicar a todos
+                  </button>
+                </div>
+              )}
             </div>
 
             {itemsRecambioUnitarios.length === 0 ? (
@@ -709,9 +841,33 @@ export const AceptarCotizacionPage: React.FC = () => {
 
             {/* Equipos Entrantes */}
             <div className="space-y-3">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                Equipos Físicos a Ingresar ({repuestosEntrantesReparacion.length})
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                  Equipos Físicos a Ingresar ({repuestosEntrantesReparacion.length})
+                </h3>
+
+                {/* Botón Aplicar a Todos para serial grabado de fábrica */}
+                {repuestosEntrantesReparacion.length > 0 && (
+                  <div className="flex items-center gap-2 shrink-0 bg-card p-2.5 rounded-xl border border-border/80">
+                    <input
+                      type="text"
+                      placeholder="Serial a aplicar a todos..."
+                      value={bulkSerialReparacion}
+                      onChange={(e) => setBulkSerialReparacion(e.target.value)}
+                      className="w-44 px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplySerialToReparacion}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors cursor-pointer"
+                      title="Aplica este serial grabado a todos los equipos a reparar"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Aplicar a todos
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {repuestosEntrantesReparacion.length === 0 ? (
                 <div className="bg-card p-6 rounded-2xl border border-border/80 text-center text-muted-foreground text-sm">

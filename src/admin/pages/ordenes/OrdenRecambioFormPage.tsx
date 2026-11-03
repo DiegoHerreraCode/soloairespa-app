@@ -8,6 +8,7 @@ import {
   X,
   Loader2,
   AlertTriangle,
+  Copy,
 } from 'lucide-react';
 
 import { getClientesAction } from '@/admin/actions/get-clientes.action';
@@ -23,6 +24,7 @@ import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
 import type { TipoOrdenItem } from '@/admin/interfaces/tipo-orden.interface';
 import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
+import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 
 // Cada bloque/línea de recambio según el boceto:
 // Fila superior: id_inventario_repuesto_saliente | precio_unitario | porcentaje_iva (read only) | id_repuesto_saliente
@@ -97,20 +99,44 @@ export const OrdenRecambioFormPage: React.FC = () => {
     return map;
   }, [repuestos]);
 
+  // Conjunto de service_tags existentes en base de datos
+  const existingServiceTagsSet = useMemo(() => {
+    const set = new Set<string>();
+    repuestos.forEach((r) => {
+      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
+    });
+    return set;
+  }, [repuestos]);
+
+  // Obtener un conjunto combinado de service_tags actuales (BD + líneas)
+  const getCombinedServiceTagsSet = () => {
+    const set = new Set<string>(existingServiceTagsSet);
+    lineasRecambio.forEach((l) => {
+      if (l.service_tag) set.add(l.service_tag.toLowerCase().trim());
+    });
+    return set;
+  };
+
+  // Estado para el serial de "Aplicar a todos" en la orden de recambio
+  const [bulkSerialRecambio, setBulkSerialRecambio] = useState<string>('');
+
   // Líneas de recambio inicializadas con 1 bloque por defecto
-  const [lineasRecambio, setLineasRecambio] = useState<LineaRecambioItem[]>([
-    {
-      id: crypto.randomUUID(),
-      id_inventario_repuesto_saliente: '',
-      id_repuesto_saliente: '',
-      precio_unitario: '',
-      monto_tasacion: '',
-      porcentaje_iva: 19,
-      id_inventario_repuesto_entrante: '',
-      serial_entrante: '',
-      service_tag: '',
-    },
-  ]);
+  const [lineasRecambio, setLineasRecambio] = useState<LineaRecambioItem[]>(() => {
+    const defaultTag = generarServiceTagUnico('compresor');
+    return [
+      {
+        id: crypto.randomUUID(),
+        id_inventario_repuesto_saliente: '',
+        id_repuesto_saliente: '',
+        precio_unitario: '',
+        monto_tasacion: '',
+        porcentaje_iva: 19,
+        id_inventario_repuesto_entrante: '',
+        serial_entrante: defaultTag,
+        service_tag: defaultTag,
+      },
+    ];
+  });
 
   // Resolución del id_tipo_orden de 'recambio' (3)
   const idTipoOrdenRecambio = useMemo(() => {
@@ -131,6 +157,8 @@ export const OrdenRecambioFormPage: React.FC = () => {
 
   // Agregar una nueva línea de recambio (+)
   const handleAgregarLinea = () => {
+    const currentTags = getCombinedServiceTagsSet();
+    const defaultTag = generarServiceTagUnico('compresor', currentTags);
     setLineasRecambio((prev) => [
       ...prev,
       {
@@ -141,10 +169,28 @@ export const OrdenRecambioFormPage: React.FC = () => {
         monto_tasacion: '',
         porcentaje_iva: 19,
         id_inventario_repuesto_entrante: '',
-        serial_entrante: '',
-        service_tag: '',
+        serial_entrante: defaultTag,
+        service_tag: defaultTag,
       },
     ]);
+  };
+
+  // Aplicar serial masivo a todas las líneas de recambio entrantes
+  const handleApplySerialToAll = () => {
+    const val = bulkSerialRecambio.trim();
+    if (!val) {
+      toast.warning('Ingresa un serial para aplicar a todas las piezas entrantes');
+      return;
+    }
+
+    setLineasRecambio((prev) =>
+      prev.map((l) => ({
+        ...l,
+        serial_entrante: val,
+      }))
+    );
+
+    toast.success(`Serial "${val}" aplicado a todas las piezas entrantes`);
   };
 
   // Remover línea de recambio (X)
@@ -410,18 +456,40 @@ export const OrdenRecambioFormPage: React.FC = () => {
           </select>
         </div>
 
-        {/* 3. LÍNEAS DE RECAMBIO (Según boceto: bloque con botón + al lado) */}
+        {/* 3. LÍNEAS DE RECAMBIO (Según boceto: bloque con botón + al lado y Aplicar a Todos) */}
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-foreground">Líneas de Recambio</h2>
-            <button
-              type="button"
-              onClick={handleAgregarLinea}
-              className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer flex items-center justify-center"
-              title="Agregar otra línea de recambio"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-foreground">Líneas de Recambio</h2>
+              <button
+                type="button"
+                onClick={handleAgregarLinea}
+                className="p-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer flex items-center justify-center"
+                title="Agregar otra línea de recambio"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input y Botón Aplicar a Todos para seriales entrantes */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Serial a aplicar a todos..."
+                value={bulkSerialRecambio}
+                onChange={(e) => setBulkSerialRecambio(e.target.value)}
+                className="w-48 px-3 py-1.5 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+              <button
+                type="button"
+                onClick={handleApplySerialToAll}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                title="Aplica este serial a todas las piezas entrantes de recambio"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Aplicar a todos
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">

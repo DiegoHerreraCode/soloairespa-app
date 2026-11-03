@@ -15,13 +15,16 @@ import {
   Clock,
   AlertCircle,
   Hash,
+  Copy,
 } from 'lucide-react';
 import { getCompraByIdAction } from '../../actions/get-compra-by-id.action';
 import { getProveedoresAction } from '../../actions/get-proveedores.action';
 import { getInventarioAction } from '../../actions/get-inventario.action';
 import { getPagosComprasAction } from '../../actions/get-pagos-compras.action';
 import { getInventarioProveedoresAction } from '../../actions/get-inventario-proveedores.action';
+import { getRepuestosAction } from '../../actions/get-repuestos.action';
 import { useCompraMutation } from '../../hooks/useCompraMutation';
+import { generarServiceTagUnico } from '../../utils/service-tag-generator';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { DetalleCompraSerial, CompraPagoPayload } from '../../interfaces/compra.interface';
 import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
@@ -65,6 +68,21 @@ export const CompraFormPage = () => {
     queryKey: ['inventario-proveedores-listado'],
     queryFn: () => getInventarioProveedoresAction(),
   });
+
+  // 3.1 Cargar repuestos existentes en BD para garantizar unicidad global de service_tag
+  const { data: repuestosExistentes = [] } = useQuery({
+    queryKey: ['repuestos-stock'],
+    queryFn: getRepuestosAction,
+  });
+
+  // Conjunto de service_tags existentes en base de datos
+  const existingServiceTagsSet = useMemo(() => {
+    const set = new Set<string>();
+    repuestosExistentes.forEach((r) => {
+      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
+    });
+    return set;
+  }, [repuestosExistentes]);
 
   // 4. Cargar todos los pagos de compras si estamos en modo detalle (fallback de seguridad)
   const { data: todosLosPagosCompras = [] } = useQuery({
@@ -241,6 +259,17 @@ export const CompraFormPage = () => {
     });
   };
 
+  // Obtener un conjunto acumulado de todos los service_tags actuales (BD + carrito)
+  const getCombinedServiceTagsSet = () => {
+    const set = new Set<string>(existingServiceTagsSet);
+    cartItems.forEach((ci) => {
+      ci.seriales.forEach((s) => {
+        if (s.service_tag) set.add(s.service_tag.toLowerCase().trim());
+      });
+    });
+    return set;
+  };
+
   // Regla 2: Seleccionar y agregar item de inventario
   const handleAddItemToCart = (item: InventarioItem) => {
     // Si ya fue seleccionado, no permitir re-seleccionarlo
@@ -251,7 +280,21 @@ export const CompraFormPage = () => {
 
     const initialQty = 1;
     const isSerialized = item.tipo !== 'insumo';
+    const needsServiceTag = ['compresor', 'valvula'].includes(item.tipo);
     const codigoProveedorAsociado = codigosProveedorMap.get(item.id_inventario) || '';
+
+    const currentTags = getCombinedServiceTagsSet();
+    const initialSeriales: DetalleCompraSerial[] = isSerialized
+      ? Array.from({ length: initialQty }, () => {
+          if (needsServiceTag) {
+            const tag = generarServiceTagUnico(item.tipo, currentTags);
+            return { serial: tag, service_tag: tag };
+          }
+          // Equipos: no tienen service_tag, se genera un serial autogenerado único por defecto
+          const tag = generarServiceTagUnico(item.tipo, currentTags);
+          return { serial: tag, service_tag: '' };
+        })
+      : [];
 
     setCartItems((prev) => [
       ...prev,
@@ -262,9 +305,7 @@ export const CompraFormPage = () => {
         cantidad: initialQty,
         costo_unitario: item.ultimo_monto_compra || item.monto_compra_prom || '',
         porcentaje_iva: 19, // IVA chileno por defecto
-        seriales: isSerialized
-          ? Array.from({ length: initialQty }, () => ({ serial: '', service_tag: '' }))
-          : [],
+        seriales: initialSeriales,
       },
     ]);
   };
@@ -304,10 +345,15 @@ export const CompraFormPage = () => {
         if (isSerialized) {
           if (qty > updatedSeriales.length) {
             const diff = qty - updatedSeriales.length;
-            const extras: DetalleCompraSerial[] = Array.from({ length: diff }, () => ({
-              serial: '',
-              service_tag: '',
-            }));
+            const needsServiceTag = ['compresor', 'valvula'].includes(item.inventario.tipo);
+            const currentTags = getCombinedServiceTagsSet();
+            const extras: DetalleCompraSerial[] = Array.from({ length: diff }, () => {
+              const tag = generarServiceTagUnico(item.inventario.tipo, currentTags);
+              return {
+                serial: tag,
+                service_tag: needsServiceTag ? tag : '',
+              };
+            });
             updatedSeriales = [...updatedSeriales, ...extras];
           } else if (qty < updatedSeriales.length) {
             updatedSeriales = updatedSeriales.slice(0, qty);
@@ -352,6 +398,36 @@ export const CompraFormPage = () => {
         return { ...item, seriales: newSeriales };
       })
     );
+  };
+
+  // Estado para el serial de "Aplicar a todos" por ítem de inventario: Map<id_inventario, string>
+  const [bulkSerials, setBulkSerials] = useState<Record<number, string>>({});
+
+  // Manejar cambio en el input de serial a granel
+  const handleBulkSerialInputChange = (id_inventario: number, value: string) => {
+    setBulkSerials((prev) => ({ ...prev, [id_inventario]: value }));
+  };
+
+  // Aplicar serial masivo a todas las unidades de este ítem serializado
+  const handleApplySerialToAll = (id_inventario: number) => {
+    const serialValue = (bulkSerials[id_inventario] || '').trim();
+    if (!serialValue) {
+      toast.warning('Ingresa un serial para aplicar a todas las unidades de este ítem');
+      return;
+    }
+
+    setCartItems((prev) =>
+      prev.map((item) => {
+        if (item.id_inventario !== id_inventario) return item;
+        const updatedSeriales = item.seriales.map((s) => ({
+          ...s,
+          serial: serialValue,
+        }));
+        return { ...item, seriales: updatedSeriales };
+      })
+    );
+
+    toast.success(`Serial "${serialValue}" aplicado a todas las unidades`);
   };
 
   // Remover item del carrito
@@ -579,14 +655,14 @@ export const CompraFormPage = () => {
             <table className="w-full text-left text-xs sm:text-sm border-collapse">
               <thead>
                 <tr className="border-b border-border/80 text-muted-foreground">
-                  <th className="py-2.5 px-3">id_detalle_compra</th>
-                  <th className="py-2.5 px-3">Ítem / Repuesto</th>
-                  <th className="py-2.5 px-3">Cód. Proveedor</th>
+                  <th className="py-2.5 px-3 text-center">id_detalle_compra</th>
+                  <th className="py-2.5 px-3 text-center">Ítem / Repuesto</th>
+                  <th className="py-2.5 px-3 text-center">Cód. Proveedor</th>
                   <th className="py-2.5 px-3 text-center">Cantidad</th>
-                  <th className="py-2.5 px-3 text-right">Costo Unitario</th>
-                  <th className="py-2.5 px-3 text-right">Subtotal</th>
+                  <th className="py-2.5 px-3 text-center">Costo Unitario</th>
+                  <th className="py-2.5 px-3 text-center">Subtotal</th>
                   <th className="py-2.5 px-3 text-center">% IVA</th>
-                  <th className="py-2.5 px-3 text-right">Total Línea</th>
+                  <th className="py-2.5 px-3 text-center">Total Línea</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -594,21 +670,21 @@ export const CompraFormPage = () => {
                   const itemInv = inventario.find((i) => i.id_inventario === det.id_inventario) || det.inventario;
                   return (
                     <tr key={idx} className="hover:bg-accent/30">
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-3 text-center">
                         <div className="font-bold text-foreground">{det.id_detalle_compra}</div>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-3 text-center">
                         <div className="font-bold text-foreground">{itemInv?.nombre || `Ítem #${det.id_inventario}`}</div>
                         <div className="text-[11px] text-muted-foreground font-mono">SKU: {itemInv?.sku || 'N/A'}</div>
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                      <td className="py-3 px-3 text-center font-mono font-bold text-blue-600 dark:text-blue-400">
                         {det.codigo_proveedor || '-'}
                       </td>
                       <td className="py-3 px-3 text-center font-bold">{det.cantidad}</td>
-                      <td className="py-3 px-3 text-right">${Number(det.costo_unitario).toLocaleString('es-CL')}</td>
-                      <td className="py-3 px-3 text-right">${Number(det.monto_total_linea_sin_iva || 0).toLocaleString('es-CL')}</td>
+                      <td className="py-3 px-3 text-center">${Number(det.costo_unitario).toLocaleString('es-CL')}</td>
+                      <td className="py-3 px-3 text-center">${Number(det.monto_total_linea_sin_iva || 0).toLocaleString('es-CL')}</td>
                       <td className="py-3 px-3 text-center">{det.porcentaje_iva || 19}%</td>
-                      <td className="py-3 px-3 text-right font-bold text-foreground">
+                      <td className="py-3 px-3 text-center font-bold text-foreground">
                         ${Number(det.monto_total_linea_con_iva || 0).toLocaleString('es-CL')}
                       </td>
                     </tr>
@@ -1072,9 +1148,33 @@ export const CompraFormPage = () => {
 
                       {/* Regla 3: Si es serializado (compresor, valvula o equipo), ingresar n seriales y n service_tags */}
                       {isSerialized && (
-                        <div className="pt-2 border-t border-border/50 space-y-2">
-                          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Identificadores Serializados ({item.cantidad} unidad{item.cantidad > 1 ? 'es' : ''})
+                        <div className="pt-2 border-t border-border/50 space-y-2.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                              Identificadores Serializados ({item.cantidad} unidad{item.cantidad > 1 ? 'es' : ''})
+                            </div>
+
+                            {/* Control para "Aplicar a todos" el serial en este ítem */}
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                placeholder="Serial a aplicar a todos..."
+                                value={bulkSerials[item.id_inventario] || ''}
+                                onChange={(e) =>
+                                  handleBulkSerialInputChange(item.id_inventario, e.target.value)
+                                }
+                                className="w-44 px-2 py-1 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleApplySerialToAll(item.id_inventario)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                                title="Aplica este serial a todas las unidades de este ítem"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                Aplicar a todos
+                              </button>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
