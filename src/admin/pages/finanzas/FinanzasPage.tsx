@@ -388,6 +388,13 @@ export const FinanzasPage = () => {
           }
           badgeText={`$${Math.round(Math.abs(margenOperativoMonto)).toLocaleString('es-CL')} ${margenOperativoMonto >= 0 ? 'utilidad' : 'déficit'
             }`}
+          badgeTextColor={
+            margenOperativoMonto > 0
+              ? 'text-emerald-600 dark:text-emerald-400'
+              : margenOperativoMonto === 0
+                ? 'text-foreground'
+                : 'text-rose-500'
+          }
           icon={Percent}
           badgeColor="bg-blue-500/10 text-blue-500"
         />

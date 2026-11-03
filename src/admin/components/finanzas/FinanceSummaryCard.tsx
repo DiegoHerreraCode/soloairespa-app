@@ -6,6 +6,7 @@ interface Props {
   subtitle: string;
   icon: typeof LucideIcon;
   badgeText?: string;
+  badgeTextColor?: string;
   badgeColor?: string;
   ivaVentas?: string;
   ivaCompras?: string;
@@ -17,6 +18,7 @@ export const FinanceSummaryCard = ({
   subtitle,
   icon: Icon,
   badgeText,
+  badgeTextColor = 'text-rose-500',
   badgeColor = 'bg-primary/10 text-primary',
   ivaVentas,
   ivaCompras,
@@ -36,7 +38,7 @@ export const FinanceSummaryCard = ({
             {value}
           </span>
           {badgeText && (
-            <span className="text-xs font-bold text-rose-500">
+            <span className={`text-xs font-bold ${badgeTextColor}`}>
               {badgeText}
             </span>
           )}

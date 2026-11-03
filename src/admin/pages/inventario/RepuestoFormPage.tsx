@@ -246,7 +246,15 @@ export const RepuestoFormPage = () => {
 
           <div className="p-3 bg-accent/40 rounded-xl">
             <span className="text-[11px] text-muted-foreground block">Utilidad</span>
-            <span className="text-sm font-bold text-foreground">
+            <span
+              className={`text-sm font-bold ${
+                Number(repuesto.utilidad || 0) > 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : Number(repuesto.utilidad || 0) === 0
+                    ? 'text-foreground'
+                    : 'text-rose-500'
+              }`}
+            >
               ${Number(repuesto.utilidad || 0).toLocaleString('es-CL')}
             </span>
           </div>
