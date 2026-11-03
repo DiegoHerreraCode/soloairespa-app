@@ -91,15 +91,27 @@ export const DashboardPage = () => {
     };
   }, [ordenesParaPie]);
 
-  // 7. Calendario 1: Fechas de pagos pendientes a proveedores (fecha_pago_acordada)
-  const fechasPagosProveedores = pagosCompras
-    .filter((p) => p.estado === 'pendiente' && p.fecha_pago_acordada)
-    .map((p) => p.fecha_pago_acordada as string);
+  // 7. Calendario 1: Items de pagos pendientes a proveedores (fecha_pago_acordada + id_pago_compra)
+  const itemsPagosProveedores = useMemo(() => {
+    return pagosCompras
+      .filter((p) => p.estado === 'pendiente' && p.fecha_pago_acordada)
+      .map((p) => ({
+        date: p.fecha_pago_acordada as string,
+        id: p.id_pago_compra,
+        label: `Pago #${p.id_pago_compra}`,
+      }));
+  }, [pagosCompras]);
 
-  // 8. Calendario 2: Fechas de entrega de reparación (fecha_entrega_reparacion)
-  const fechasEntregaReparacion = ordenes
-    .filter((o) => o.fecha_entrega_reparacion && o.estado_operativo !== 'finalizada' && o.estado_operativo !== 'anulada')
-    .map((o) => o.fecha_entrega_reparacion as string);
+  // 8. Calendario 2: Items de fechas de entrega de reparación (fecha_entrega_reparacion + id_orden)
+  const itemsEntregaReparacion = useMemo(() => {
+    return ordenes
+      .filter((o) => o.fecha_entrega_reparacion && o.estado_operativo !== 'finalizada' && o.estado_operativo !== 'anulada')
+      .map((o) => ({
+        date: o.fecha_entrega_reparacion as string,
+        id: o.id_orden,
+        label: `Orden #${o.id_orden}`,
+      }));
+  }, [ordenes]);
 
   return (
     <div className="space-y-8 pb-10">
@@ -184,14 +196,16 @@ export const DashboardPage = () => {
         <DashboardCalendar
           title="Calendario de Pagos Pendientes a Proveedores"
           subtitle="Compromisos de pago acordados con proveedores"
-          highlightedDates={fechasPagosProveedores}
+          highlightedItems={itemsPagosProveedores}
+          itemTypeLabel="Pago"
           tooltipMessage="Pago acordado a proveedor programado para esta fecha"
         />
 
         <DashboardCalendar
           title="Calendario de Fechas de Entrega de Reparación"
           subtitle="Entregas comprometidas de órdenes de reparación"
-          highlightedDates={fechasEntregaReparacion}
+          highlightedItems={itemsEntregaReparacion}
+          itemTypeLabel="Orden"
           tooltipMessage="Entrega de repuesto o servicio de reparación agendada"
         />
       </section>

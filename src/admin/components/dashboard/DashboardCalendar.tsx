@@ -3,10 +3,18 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useThemeStore } from '@/lib/theme.store';
 
 
+export interface HighlightedCalendarItem {
+  date: string | Date | undefined | null;
+  id?: number | string;
+  label?: string; // Por ejemplo "Pago #12" u "Orden #45"
+}
+
 interface Props {
   title: string;
   subtitle: string;
-  highlightedDates: (string | Date | undefined | null)[];
+  highlightedDates?: (string | Date | undefined | null)[];
+  highlightedItems?: HighlightedCalendarItem[];
+  itemTypeLabel?: 'pago' | 'orden' | string; // Para formatear si solo vienen ids
   tooltipMessage: string;
 }
 
@@ -69,6 +77,8 @@ export const DashboardCalendar = ({
   title,
   subtitle,
   highlightedDates = [],
+  highlightedItems = [],
+  itemTypeLabel,
   tooltipMessage,
 }: Props) => {
   const today = new Date();
@@ -93,12 +103,39 @@ export const DashboardCalendar = ({
     setCurrentDate(new Date(year, month + 1, 1));
   };
 
-  // Convertir las fechas recibidas en un Set normalizado con formato "YYYY-MM-DD"
-  const highlightSet = new Set<string>();
+  // Mapa de fechas normalizadas ("YYYY-MM-DD") -> lista de elementos (IDs / etiquetas)
+  const itemsByDateMap = new Map<string, string[]>();
+
+  // 1. Procesar highlightedItems (si traen IDs)
+  highlightedItems.forEach((item) => {
+    const key = normalizeDateKey(item.date);
+    if (!key) return;
+
+    let text = '';
+    if (item.label) {
+      text = item.label;
+    } else if (item.id !== undefined && item.id !== null) {
+      if (itemTypeLabel) {
+        text = `${itemTypeLabel} #${item.id}`;
+      } else {
+        text = `#${item.id}`;
+      }
+    }
+
+    if (!itemsByDateMap.has(key)) {
+      itemsByDateMap.set(key, []);
+    }
+    if (text) {
+      itemsByDateMap.get(key)!.push(text);
+    }
+  });
+
+  // 2. Procesar highlightedDates simples
   highlightedDates.forEach((d) => {
     const key = normalizeDateKey(d);
-    if (key) {
-      highlightSet.add(key);
+    if (!key) return;
+    if (!itemsByDateMap.has(key)) {
+      itemsByDateMap.set(key, []);
     }
   });
 
@@ -119,8 +156,8 @@ export const DashboardCalendar = ({
       </div>
 
       {/* Cabecera del Calendario */}
-      <div className="rounded-xl overflow-hidden border border-border">
-        <div className="bg-sky-500 dark:bg-sky-600 px-4 py-2.5 flex items-center justify-between text-white font-bold text-sm tracking-wider">
+      <div className="rounded-xl border border-border">
+        <div className="bg-sky-500 dark:bg-sky-600 px-4 py-2.5 rounded-t-xl flex items-center justify-between text-white font-bold text-sm tracking-wider">
           <button
             onClick={handlePrevMonth}
             className="p-1 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
@@ -148,27 +185,58 @@ export const DashboardCalendar = ({
         </div>
 
         {/* Cuadrícula de Números */}
-        <div className="grid grid-cols-7 text-center divide-x divide-y divide-border/60 bg-card">
+        <div className="grid grid-cols-7 text-center divide-x divide-y divide-border/60 bg-card rounded-b-xl">
           {calendarCells.map((day, idx) => {
             if (day === null) {
               return <div key={idx} className="h-10 bg-muted/10" />;
             }
 
             const dayString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const isHighlighted = highlightSet.has(dayString);
+            const isHighlighted = itemsByDateMap.has(dayString);
+            const itemsInDay = itemsByDateMap.get(dayString) || [];
+
+            // Mensaje para el tooltip nativo (title) como fallback
+            const nativeTitle = isHighlighted
+              ? itemsInDay.length > 0
+                ? itemsInDay.join(', ')
+                : tooltipMessage
+              : undefined;
 
             return (
               <div
                 key={idx}
-                title={isHighlighted ? tooltipMessage : undefined}
-                className={`h-10 flex items-center justify-center text-xs transition-colors relative ${isHighlighted
-                  ? `!bg-amber-300 dark:!bg-amber-500/40 ${theme === 'dark' ? 'text-white-950' : 'text-black'} font-extrabold shadow-inner`
+                title={nativeTitle}
+                className={`h-10 flex items-center justify-center text-xs transition-colors relative group ${isHighlighted
+                  ? `!bg-amber-300 dark:!bg-amber-500/40 ${theme === 'dark' ? 'text-white-950' : 'text-black'} font-extrabold shadow-inner cursor-pointer`
                   : 'text-foreground hover:bg-muted/40 font-medium'
                   }`}
               >
                 <span>{day}</span>
                 {isHighlighted && (
                   <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400" />
+                )}
+
+                {/* Tooltip flotante enriquecido al hacer hover en casilla amarilla */}
+                {isHighlighted && itemsInDay.length > 0 && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none animate-fadeIn">
+                    <div className="bg-popover text-popover-foreground border border-border/90 px-3 py-1.5 rounded-xl shadow-lg text-[11px] font-semibold whitespace-nowrap min-w-max">
+                      <div className="text-muted-foreground font-medium text-[10px] pb-0.5 border-b border-border/60 mb-1">
+                        {day} de {MONTH_NAMES[month].toLowerCase()} ({itemsInDay.length} {itemsInDay.length === 1 ? 'registro' : 'registros'})
+                      </div>
+                      <div className="flex flex-wrap gap-1 justify-center max-w-[200px]">
+                        {itemsInDay.map((label, i) => (
+                          <span
+                            key={i}
+                            className="inline-block bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-bold text-[10px]"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Flecha del tooltip */}
+                    <div className="w-2 h-2 bg-popover border-b border-r border-border/90 rotate-45 -mt-1" />
+                  </div>
                 )}
               </div>
             );
