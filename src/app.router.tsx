@@ -22,6 +22,7 @@ import { CompraPage } from './admin/pages/compras/CompraPage';
 import { CompraFormPage } from './admin/pages/compras/CompraFormPage';
 import { CompraProveedorPage } from './admin/pages/compras/CompraProveedorPage';
 import { CompraProveedorFormPage } from './admin/pages/compras/CompraProveedorFormPage';
+import { ProveedorCatalogoPage } from './admin/pages/compras/ProveedorCatalogoPage';
 import { PagoCompraPage } from './admin/pages/compras/PagoCompraPage';
 import { PagoCompraFormPage } from './admin/pages/compras/PagoCompraFormPage';
 import { InventarioMenuPage } from './admin/pages/inventario/InventarioMenuPage';
@@ -229,6 +230,10 @@ export const appRouter = createBrowserRouter([
           {
             path: 'proveedores/:id', // ruta: admin/compras/proveedores/:id (:id = 'new' o id numérico)
             element: <CompraProveedorFormPage />,
+          },
+          {
+            path: 'proveedores/:id/catalogo', // ruta: admin/compras/proveedores/:id/catalogo (Catálogo de ítems del proveedor)
+            element: <ProveedorCatalogoPage />,
           },
           {
             path: 'listado', // ruta: admin/compras/listado (Listado de compras en tabla de 7 filas)

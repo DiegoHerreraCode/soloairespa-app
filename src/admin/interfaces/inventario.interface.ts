@@ -1,3 +1,5 @@
+import type { InventarioProveedorItem } from './inventario-proveedor.interface';
+
 export interface InventarioItem {
   id_inventario: number;
   id_modelo?: number | null;
@@ -17,4 +19,5 @@ export interface InventarioItem {
   monto_venta_unitario?: number | string;
   created_at?: string;
   updated_at?: string;
+  inventario_proveedores?: InventarioProveedorItem[];
 }

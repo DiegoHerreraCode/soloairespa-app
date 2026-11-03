@@ -11,6 +11,7 @@ export interface DetalleCompraItem {
   id_detalle_compra?: number;
   id_compra?: number;
   id_inventario: number;
+  codigo_proveedor?: string | null;
   cantidad: number;
   costo_unitario: number | string;
   monto_total_linea_sin_iva?: number | string;

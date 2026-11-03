@@ -20,6 +20,7 @@ import { getCompraByIdAction } from '../../actions/get-compra-by-id.action';
 import { getProveedoresAction } from '../../actions/get-proveedores.action';
 import { getInventarioAction } from '../../actions/get-inventario.action';
 import { getPagosComprasAction } from '../../actions/get-pagos-compras.action';
+import { getInventarioProveedoresAction } from '../../actions/get-inventario-proveedores.action';
 import { useCompraMutation } from '../../hooks/useCompraMutation';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { DetalleCompraSerial, CompraPagoPayload } from '../../interfaces/compra.interface';
@@ -28,6 +29,7 @@ import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
 interface CartItem {
   id_inventario: number;
   inventario: InventarioItem;
+  codigo_proveedor?: string;
   cantidad: number;
   costo_unitario: number | string;
   porcentaje_iva: number;
@@ -58,7 +60,13 @@ export const CompraFormPage = () => {
     queryFn: getInventarioAction,
   });
 
-  // 3. Cargar todos los pagos de compras si estamos en modo detalle (fallback de seguridad)
+  // 3. Cargar las relaciones inventario-proveedores para homologación de códigos
+  const { data: inventarioProveedores = [] } = useQuery({
+    queryKey: ['inventario-proveedores-listado'],
+    queryFn: () => getInventarioProveedoresAction(),
+  });
+
+  // 4. Cargar todos los pagos de compras si estamos en modo detalle (fallback de seguridad)
   const { data: todosLosPagosCompras = [] } = useQuery({
     queryKey: ['pagos-compras-listado'],
     queryFn: getPagosComprasAction,
@@ -78,6 +86,39 @@ export const CompraFormPage = () => {
   // ESTADO DE BÚSQUEDA SKU Y LISTA DE COMPRA (CARRITO)
   const [skuSearch, setSkuSearch] = useState('');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Mapa de códigos de proveedor: (id_inventario) -> codigo_proveedor para el proveedor seleccionado
+  const codigosProveedorMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (!idProveedor) return map;
+    const numProvId = Number(idProveedor);
+    inventarioProveedores
+      .filter((ip) => ip.id_proveedor === numProvId)
+      .forEach((ip) => {
+        map.set(ip.id_inventario, ip.codigo_proveedor);
+      });
+    return map;
+  }, [idProveedor, inventarioProveedores]);
+
+  // Ítems de inventario filtrados según el proveedor seleccionado:
+  // Si no hay proveedor seleccionado, no se muestra ningún ítem (requiere seleccionar proveedor primero).
+  // Si hay proveedor seleccionado, se muestran ÚNICAMENTE los ítems homologados que dicho proveedor suministra.
+  // Si el proveedor no suministra ningún ítem aún, la lista queda vacía.
+  const inventarioFiltradoPorProveedor = useMemo(() => {
+    if (!idProveedor) return [];
+    const numProvId = Number(idProveedor);
+    const homologadosIds = new Set(
+      inventarioProveedores
+        .filter((ip) => ip.id_proveedor === numProvId)
+        .map((ip) => ip.id_inventario)
+    );
+
+    if (homologadosIds.size === 0) {
+      return [];
+    }
+
+    return inventario.filter((item) => homologadosIds.has(item.id_inventario));
+  }, [idProveedor, inventario, inventarioProveedores]);
 
   // Regla 1: Si tipo_pago es 'contado', num_pagos siempre es 1
   useEffect(() => {
@@ -210,12 +251,14 @@ export const CompraFormPage = () => {
 
     const initialQty = 1;
     const isSerialized = item.tipo !== 'insumo';
+    const codigoProveedorAsociado = codigosProveedorMap.get(item.id_inventario) || '';
 
     setCartItems((prev) => [
       ...prev,
       {
         id_inventario: item.id_inventario,
         inventario: item,
+        codigo_proveedor: codigoProveedorAsociado,
         cantidad: initialQty,
         costo_unitario: item.ultimo_monto_compra || item.monto_compra_prom || '',
         porcentaje_iva: 19, // IVA chileno por defecto
@@ -226,21 +269,25 @@ export const CompraFormPage = () => {
     ]);
   };
 
-  // Buscar por SKU al dar Enter o click en "+"
+  // Buscar por SKU o Código de Proveedor al dar Enter o click en "+"
   const handleSkuSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const term = skuSearch.trim().toLowerCase();
     if (!term) return;
 
-    const matched = inventario.find(
-      (inv) => inv.sku && inv.sku.toLowerCase() === term
-    );
+    // Buscar en el inventario disponible por SKU o por Código de Proveedor asociado
+    const matched = inventarioFiltradoPorProveedor.find((inv) => {
+      const matchSku = inv.sku && inv.sku.toLowerCase() === term;
+      const codProv = (codigosProveedorMap.get(inv.id_inventario) || '').toLowerCase();
+      const matchCodProv = codProv === term;
+      return matchSku || matchCodProv;
+    });
 
     if (matched) {
       handleAddItemToCart(matched);
       setSkuSearch('');
     } else {
-      toast.error(`No se encontró ningún ítem con el SKU "${skuSearch.trim()}"`);
+      toast.error(`No se encontró ningún ítem con el SKU o Código de proveedor "${skuSearch.trim()}"`);
     }
   };
 
@@ -276,10 +323,10 @@ export const CompraFormPage = () => {
     );
   };
 
-  // Cambiar costo unitario o porcentaje de iva
+  // Cambiar costo unitario, porcentaje de iva o codigo de proveedor
   const handleCartItemFieldChange = (
     id_inventario: number,
-    field: 'costo_unitario' | 'porcentaje_iva',
+    field: 'costo_unitario' | 'porcentaje_iva' | 'codigo_proveedor',
     value: any
   ) => {
     setCartItems((prev) =>
@@ -403,6 +450,7 @@ export const CompraFormPage = () => {
 
         return {
           id_inventario: c.id_inventario,
+          codigo_proveedor: c.codigo_proveedor ? c.codigo_proveedor.trim() : undefined,
           cantidad: Number(c.cantidad),
           costo_unitario: Number(c.costo_unitario),
           monto_total_linea_sin_iva: subtotalLinea,
@@ -533,6 +581,7 @@ export const CompraFormPage = () => {
                 <tr className="border-b border-border/80 text-muted-foreground">
                   <th className="py-2.5 px-3">id_detalle_compra</th>
                   <th className="py-2.5 px-3">Ítem / Repuesto</th>
+                  <th className="py-2.5 px-3">Cód. Proveedor</th>
                   <th className="py-2.5 px-3 text-center">Cantidad</th>
                   <th className="py-2.5 px-3 text-right">Costo Unitario</th>
                   <th className="py-2.5 px-3 text-right">Subtotal</th>
@@ -551,6 +600,9 @@ export const CompraFormPage = () => {
                       <td className="py-3 px-3">
                         <div className="font-bold text-foreground">{itemInv?.nombre || `Ítem #${det.id_inventario}`}</div>
                         <div className="text-[11px] text-muted-foreground font-mono">SKU: {itemInv?.sku || 'N/A'}</div>
+                      </td>
+                      <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                        {det.codigo_proveedor || '-'}
                       </td>
                       <td className="py-3 px-3 text-center font-bold">{det.cantidad}</td>
                       <td className="py-3 px-3 text-right">${Number(det.costo_unitario).toLocaleString('es-CL')}</td>
@@ -719,7 +771,13 @@ export const CompraFormPage = () => {
               </label>
               <select
                 value={idProveedor}
-                onChange={(e) => setIdProveedor(e.target.value)}
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  if (newId !== idProveedor) {
+                    setIdProveedor(newId);
+                    setCartItems([]);
+                  }
+                }}
                 required
                 className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               >
@@ -921,6 +979,21 @@ export const CompraFormPage = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
+                          {/* Código Proveedor (Solo Lectura) */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground block">
+                              Cód. Proveedor
+                            </label>
+                            <input
+                              type="text"
+                              value={item.codigo_proveedor || '-'}
+                              readOnly
+                              tabIndex={-1}
+                              title="El código del proveedor se homologa desde el catálogo del proveedor"
+                              className="w-28 px-2.5 py-1 text-xs rounded-lg bg-muted/50 border border-border/80 text-muted-foreground font-mono cursor-not-allowed select-none focus:outline-none"
+                            />
+                          </div>
+
                           {/* Cantidad */}
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold uppercase text-muted-foreground block">
@@ -1055,15 +1128,22 @@ export const CompraFormPage = () => {
             )}
           </div>
 
-          {/* COLUMNA DERECHA: BUSCAR POR SKU SEGÚN BOCETO */}
+          {/* COLUMNA DERECHA: BUSCAR POR SKU O CÓDIGO PROVEEDOR */}
           <div className="lg:col-span-4 bg-card p-5 sm:p-6 rounded-2xl border border-border/80 shadow-xs space-y-4">
             <div>
-              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-                <Search className="w-4 h-4 text-blue-500" />
-                Buscar por SKU
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Search className="w-4 h-4 text-blue-500" />
+                  Buscar Ítems
+                </h2>
+                {idProveedor && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Filtrado por proveedor
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Presiona Enter o haz click en "+" para agregar
+                Busca por SKU o Código de proveedor. Presiona Enter o "+" para agregar
               </p>
             </div>
 
@@ -1081,7 +1161,7 @@ export const CompraFormPage = () => {
                       handleSkuSearchSubmit(e);
                     }
                   }}
-                  placeholder="Ej: COMP-001..."
+                  placeholder="SKU o Cód. Proveedor (ej: 13703-2)..."
                   className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 font-mono"
                 />
               </div>
@@ -1096,41 +1176,61 @@ export const CompraFormPage = () => {
 
             {/* Catálogo de Ítems Disponibles con botón "+" */}
             <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
-              {inventario.map((item) => {
-                const isSelected = cartItems.some((c) => c.id_inventario === item.id_inventario);
+              {!idProveedor ? (
+                <div className="text-center py-8 text-xs text-muted-foreground border border-dashed border-border/80 rounded-xl px-4">
+                  Selecciona un proveedor en la cabecera para ver los ítems que suministra.
+                </div>
+              ) : inventarioFiltradoPorProveedor.length === 0 ? (
+                <div className="text-center py-8 text-xs text-muted-foreground border border-dashed border-border/80 rounded-xl px-4 space-y-1">
+                  <p className="font-semibold text-foreground">Sin ítems homologados</p>
+                  <p>Este proveedor aún no tiene ningún ítem asociado en su catálogo.</p>
+                </div>
+              ) : (
+                inventarioFiltradoPorProveedor.map((item) => {
+                  const isSelected = cartItems.some((c) => c.id_inventario === item.id_inventario);
+                  const codigoProv = codigosProveedorMap.get(item.id_inventario);
 
-                return (
-                  <div
-                    key={item.id_inventario}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isSelected
-                      ? 'bg-muted/40 border-border/40 opacity-60'
-                      : 'bg-background border-border/80 hover:border-blue-500/40'
-                      }`}
-                  >
-                    <div className="overflow-hidden pr-2">
-                      <div className="text-xs font-bold text-foreground truncate">{item.nombre}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-2">
-                        <span>SKU: {item.sku || 'N/A'}</span>
-                        <span>•</span>
-                        <span className="capitalize">{item.tipo}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={isSelected}
-                      onClick={() => handleAddItemToCart(item)}
-                      className={`p-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${isSelected
-                        ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-500/20'
+                  return (
+                    <div
+                      key={item.id_inventario}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isSelected
+                        ? 'bg-muted/40 border-border/40 opacity-60'
+                        : 'bg-background border-border/80 hover:border-blue-500/40'
                         }`}
-                      title={isSelected ? 'Ya agregado' : 'Agregar a la compra'}
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
+                      <div className="overflow-hidden pr-2">
+                        <div className="text-xs font-bold text-foreground truncate">{item.nombre}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-2 flex-wrap">
+                          <span>SKU: {item.sku || 'N/A'}</span>
+                          {codigoProv && (
+                            <>
+                              <span>•</span>
+                              <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                Cód. Prov: {codigoProv}
+                              </span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span className="capitalize">{item.tipo}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isSelected}
+                        onClick={() => handleAddItemToCart(item)}
+                        className={`p-2 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${isSelected
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-500/20'
+                          }`}
+                        title={isSelected ? 'Ya agregado' : 'Agregar a la compra'}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

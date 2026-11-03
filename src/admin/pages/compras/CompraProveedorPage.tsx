@@ -11,6 +11,7 @@ import {
   IdCard,
   Edit2,
   Filter,
+  BookOpen,
 } from 'lucide-react';
 import { useProveedores } from '../../hooks/useProveedores';
 import type { ProveedorItem } from '../../interfaces/proveedor.interface';
@@ -190,8 +191,15 @@ export const CompraProveedorPage = () => {
                 </div>
               </div>
 
-              {/* Botón de Acción: Editar */}
-              <div className="flex items-center justify-end pt-4 border-t border-border/80 mt-4">
+              {/* Botones de Acción: Ver Catálogo y Editar */}
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-border/80 mt-4">
+                <button
+                  onClick={() => navigate(`/admin/compras/proveedores/${item.id_proveedor}/catalogo`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Ver Catálogo
+                </button>
                 <button
                   onClick={() => navigate(`/admin/compras/proveedores/${item.id_proveedor}`)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
