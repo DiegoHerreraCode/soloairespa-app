@@ -6,6 +6,7 @@ import {
   Plus,
   Filter,
   Edit2,
+  Eye,
   Package,
   FileSpreadsheet,
   Loader2
@@ -315,15 +316,26 @@ export const ItemPage = () => {
                         {item.stock_minimo ?? 0}
                       </td>
 
-                      {/* acciones: Editar */}
+                      {/* acciones: Ver Detalle y Editar */}
                       <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => navigate(`/admin/inventario/items/${item.id_inventario}`)}
-                          className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-blue-500" />
-                          Editar
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => navigate(`/admin/inventario/items/${item.id_inventario}/detalle`)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                            title="Ver ficha técnica y desglose de existencias"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Ver Detalle
+                          </button>
+                          <button
+                            onClick={() => navigate(`/admin/inventario/items/${item.id_inventario}`)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
+                            title="Editar parámetros del ítem"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                            Editar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

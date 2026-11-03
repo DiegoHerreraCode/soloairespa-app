@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -11,10 +11,25 @@ import {
   Percent,
   TrendingUp,
   AlertTriangle,
+  ShoppingCart,
+  ClipboardList,
+  Building2,
+  User,
+  ChevronLeft,
+  ChevronRight,
+  Boxes,
 } from 'lucide-react';
 import { getInventarioByIdAction } from '../../actions/get-inventario-by-id.action';
 import { getModelosAction } from '../../actions/get-modelos.action';
+import { getRepuestosAction } from '../../actions/get-repuestos.action';
+import { getEquiposAction } from '../../actions/get-equipos.action';
+import { getComprasAction } from '../../actions/get-compras.action';
+import { getOrdenesAction } from '../../actions/get-ordenes.action';
+import { getProveedoresAction } from '../../actions/get-proveedores.action';
+import { getClientesAction } from '../../actions/get-clientes.action';
 import { useItemMutation } from '../../hooks/useItemMutation';
+import type { RepuestoItem } from '../../interfaces/repuesto.interface';
+import type { EquipoItem } from '../../interfaces/equipo.interface';
 
 export const ItemFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +51,184 @@ export const ItemFormPage = () => {
     queryFn: () => getInventarioByIdAction(id!),
     enabled: !isCreating,
   });
+
+  const isSerialized = itemData && itemData.tipo !== 'insumo';
+
+  // 1. Cargar repuestos si el ítem es compresor o valvula
+  const { data: repuestos = [] } = useQuery<RepuestoItem[]>({
+    queryKey: ['repuestos-stock'],
+    queryFn: getRepuestosAction,
+    enabled: !!(!isCreating && isSerialized && (itemData?.tipo === 'compresor' || itemData?.tipo === 'valvula')),
+  });
+
+  // 2. Cargar equipos si el ítem es equipo
+  const { data: equipos = [] } = useQuery<EquipoItem[]>({
+    queryKey: ['equipos-listado'],
+    queryFn: getEquiposAction,
+    enabled: !!(!isCreating && isSerialized && itemData?.tipo === 'equipo'),
+  });
+
+  // 3. Cargar compras para resolver información de origen de compra
+  const { data: compras = [] } = useQuery({
+    queryKey: ['compras-listado'],
+    queryFn: getComprasAction,
+    enabled: !!(!isCreating && isSerialized),
+  });
+
+  // 4. Cargar órdenes para resolver información de origen de orden de trabajo
+  const { data: ordenes = [] } = useQuery({
+    queryKey: ['ordenes-listado'],
+    queryFn: getOrdenesAction,
+    enabled: !!(!isCreating && isSerialized),
+  });
+
+  // 5. Cargar proveedores y clientes
+  const { data: proveedores = [] } = useQuery({
+    queryKey: ['proveedores-listado'],
+    queryFn: getProveedoresAction,
+    enabled: !!(!isCreating && isSerialized),
+  });
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientes-listado'],
+    queryFn: getClientesAction,
+    enabled: !!(!isCreating && isSerialized),
+  });
+
+  // Mapas rápidos para resolución eficiente
+  const proveedoresMap = useMemo(() => {
+    return new Map(proveedores.map((p) => [p.id_proveedor, p]));
+  }, [proveedores]);
+
+  const clientesMap = useMemo(() => {
+    return new Map(clientes.map((c) => [c.id_cliente, c]));
+  }, [clientes]);
+
+  const comprasMap = useMemo(() => {
+    return new Map(compras.map((comp) => [comp.id_compra, comp]));
+  }, [compras]);
+
+  const ordenesMap = useMemo(() => {
+    return new Map(ordenes.map((ord) => [ord.id_orden, ord]));
+  }, [ordenes]);
+
+  // Mapa de detalles de compras: id_detalle_compra -> { id_compra, codigo_proveedor }
+  const detallesComprasMap = useMemo(() => {
+    const map = new Map<number, { id_compra?: number; codigo_proveedor?: string | null }>();
+    compras.forEach((comp) => {
+      comp.detalles?.forEach((det) => {
+        if (det.id_detalle_compra) {
+          map.set(det.id_detalle_compra, {
+            id_compra: comp.id_compra,
+            codigo_proveedor: det.codigo_proveedor,
+          });
+        }
+      });
+    });
+    return map;
+  }, [compras]);
+
+  // Registros físicos serializados que componen la cantidad_total de este ítem
+  const registrosSerializados = useMemo(() => {
+    if (!itemData || !isSerialized) return [];
+    const numId = Number(id);
+
+    if (itemData.tipo === 'equipo') {
+      // Para equipos: registros de la tabla 'equipos' con is_deleted != true
+      return equipos
+        .filter((eq) => eq.id_inventario === numId && !(eq.is_deleted === true || String(eq.is_deleted) === '1'))
+        .map((eq) => {
+          const infoDetalle = eq.id_detalle_compra ? detallesComprasMap.get(eq.id_detalle_compra) : undefined;
+          const idCompra = infoDetalle?.id_compra;
+          const compra = idCompra ? comprasMap.get(idCompra) : undefined;
+          const prov = compra?.proveedor || (compra?.id_proveedor ? proveedoresMap.get(compra.id_proveedor) : undefined);
+
+          return {
+            id: `eq-${eq.id_equipo}`,
+            identificador: `#${eq.id_equipo}`,
+            serial: eq.serial || 'Sin serial',
+            service_tag: '-',
+            tipo_origen: 'compra' as const,
+            id_origen: idCompra ?? null,
+            codigo_proveedor: infoDetalle?.codigo_proveedor || '-',
+            origen_nombre: prov?.nombre || 'Proveedor no registrado',
+            origen_rut: prov?.rut || '-',
+            propietario_texto: 'Taller (Propio)',
+            estado_texto: 'Activo',
+          };
+        });
+    }
+
+    // Para compresores y válvulas: registros de la tabla 'repuestos' con id_orden_salida === null
+    return repuestos
+      .filter((r) => r.id_inventario === numId && (r.id_orden_salida === null || r.id_orden_salida === undefined))
+      .map((r) => {
+        if (r.id_detalle_compra) {
+          // Origen por COMPRA
+          const infoDetalle = detallesComprasMap.get(r.id_detalle_compra);
+          const idCompra = infoDetalle?.id_compra;
+          const compra = idCompra ? comprasMap.get(idCompra) : undefined;
+          const prov = compra?.proveedor || (compra?.id_proveedor ? proveedoresMap.get(compra.id_proveedor) : undefined);
+
+          return {
+            id: `rep-${r.id_repuesto}`,
+            identificador: `#${r.id_repuesto}`,
+            serial: r.serial || 'Sin serial',
+            service_tag: r.service_tag || 'Sin tag',
+            tipo_origen: 'compra' as const,
+            id_origen: idCompra ?? null,
+            codigo_proveedor: infoDetalle?.codigo_proveedor || '-',
+            origen_nombre: prov?.nombre || 'Proveedor no registrado',
+            origen_rut: prov?.rut || '-',
+            propietario_texto: r.propietario ? 'Taller (Propio)' : 'Cliente',
+            estado_texto: r.estado || 'nuevo',
+          };
+        } else if (r.id_orden_entrada) {
+          // Origen por ORDEN (Recambio o Recepción para Reparación)
+          const orden = ordenesMap.get(r.id_orden_entrada);
+          const cli = orden?.cliente || (orden?.id_cliente ? clientesMap.get(orden.id_cliente) : undefined);
+
+          return {
+            id: `rep-${r.id_repuesto}`,
+            identificador: `#${r.id_repuesto}`,
+            serial: r.serial || 'Sin serial',
+            service_tag: r.service_tag || 'Sin tag',
+            tipo_origen: 'orden' as const,
+            id_origen: r.id_orden_entrada,
+            codigo_proveedor: '-',
+            origen_nombre: cli?.nombre || 'Cliente no registrado',
+            origen_rut: cli?.rut || '-',
+            propietario_texto: r.propietario ? 'Taller (Propio)' : 'Cliente',
+            estado_texto: r.estado || 'pendiente_reparacion',
+          };
+        }
+
+        // Caso sin detalle_compra ni orden_entrada explícita
+        return {
+          id: `rep-${r.id_repuesto}`,
+          identificador: `#${r.id_repuesto}`,
+          serial: r.serial || 'Sin serial',
+          service_tag: r.service_tag || 'Sin tag',
+          tipo_origen: 'otro' as const,
+          id_origen: null,
+          codigo_proveedor: '-',
+          origen_nombre: 'Ingreso directo inicial',
+          origen_rut: '-',
+          propietario_texto: r.propietario ? 'Taller (Propio)' : 'Cliente',
+          estado_texto: r.estado || 'nuevo',
+        };
+      });
+  }, [itemData, isSerialized, id, equipos, repuestos, detallesComprasMap, comprasMap, proveedoresMap, ordenesMap, clientesMap]);
+
+  // Paginación para la tabla de registros serializados (7 por página)
+  const [paginaRegistros, setPaginaRegistros] = useState(1);
+  const itemsPorPagina = 7;
+  const totalPaginasRegistros = Math.ceil(registrosSerializados.length / itemsPorPagina);
+
+  const paginatedRegistros = useMemo(() => {
+    const inicio = (paginaRegistros - 1) * itemsPorPagina;
+    return registrosSerializados.slice(inicio, inicio + itemsPorPagina);
+  }, [registrosSerializados, paginaRegistros]);
 
   // Estados del formulario
   const [sku, setSku] = useState('');
@@ -384,6 +577,162 @@ export const ItemFormPage = () => {
                   : 'Guardar Cambios'}
             </button>
           </div>
+
+      {/* 3. Trazabilidad de Existencias Físicas (Solo para Ítems Serializados: compresor, valvula o equipo) */}
+      {!isCreating && isSerialized && (
+        <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                <Boxes className="w-5 h-5 text-blue-500" />
+                Desglose Físico de Existencias Activas
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Registros que confirman la cantidad total en bodega ({itemData?.cantidad_total ?? 0} unidad{Number(itemData?.cantidad_total) !== 1 ? 'es' : ''})
+              </p>
+            </div>
+
+            {/* Badges de stocks */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                Total: {itemData?.cantidad_total ?? 0}
+              </span>
+              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                Propio: {itemData?.cantidad_propia ?? 0}
+              </span>
+              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                Cliente: {itemData?.cantidad_cliente ?? 0}
+              </span>
+            </div>
+          </div>
+
+          {/* Tabla de Registros Físicos */}
+          <div className="overflow-x-auto rounded-xl border border-border/70">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-muted/40 border-b border-border/70 text-muted-foreground font-semibold">
+                  <th className="py-2.5 px-3">Identificador</th>
+                  <th className="py-2.5 px-3">Serial</th>
+                  {itemData?.tipo !== 'equipo' && <th className="py-2.5 px-3">Service Tag</th>}
+                  <th className="py-2.5 px-3">Origen</th>
+                  <th className="py-2.5 px-3 text-center">ID Origen</th>
+                  <th className="py-2.5 px-3">Cód. Proveedor</th>
+                  <th className="py-2.5 px-3">Entidad (Proveedor / Cliente)</th>
+                  <th className="py-2.5 px-3">RUT</th>
+                  <th className="py-2.5 px-3 text-center">Titularidad</th>
+                  <th className="py-2.5 px-3 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {paginatedRegistros.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={itemData?.tipo !== 'equipo' ? 10 : 9}
+                      className="text-center py-8 text-muted-foreground"
+                    >
+                      No se encontraron piezas físicas registradas en existencia para este ítem.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedRegistros.map((reg) => (
+                    <tr key={reg.id} className="hover:bg-accent/30 transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-bold text-foreground">
+                        {reg.identificador}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-foreground font-medium">
+                        {reg.serial}
+                      </td>
+                      {itemData?.tipo !== 'equipo' && (
+                        <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                          {reg.service_tag}
+                        </td>
+                      )}
+                      <td className="py-2.5 px-3">
+                        {reg.tipo_origen === 'compra' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            <ShoppingCart className="w-3 h-3" />
+                            Compra
+                          </span>
+                        ) : reg.tipo_origen === 'orden' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                            <ClipboardList className="w-3 h-3" />
+                            Orden
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-foreground">
+                        {reg.id_origen ? `#${reg.id_origen}` : '-'}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-blue-600 dark:text-blue-400 font-bold">
+                        {reg.codigo_proveedor}
+                      </td>
+                      <td className="py-2.5 px-3 font-medium text-foreground">
+                        <div className="flex items-center gap-1.5 truncate max-w-[200px]" title={reg.origen_nombre}>
+                          {reg.tipo_origen === 'compra' ? (
+                            <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          ) : (
+                            <User className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                          )}
+                          <span className="truncate">{reg.origen_nombre}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                        {reg.origen_rut}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
+                            reg.propietario_texto.includes('Propio')
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                          }`}
+                        >
+                          {reg.propietario_texto}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-center capitalize text-muted-foreground">
+                        {reg.estado_texto}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Paginación si hay más de 7 registros */}
+          {totalPaginasRegistros > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-muted-foreground">
+                Mostrando {paginatedRegistros.length} de {registrosSerializados.length} registros
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={paginaRegistros === 1}
+                  onClick={() => setPaginaRegistros((p) => Math.max(1, p - 1))}
+                  className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-semibold px-2">
+                  Página {paginaRegistros} de {totalPaginasRegistros}
+                </span>
+                <button
+                  type="button"
+                  disabled={paginaRegistros === totalPaginasRegistros}
+                  onClick={() => setPaginaRegistros((p) => Math.min(totalPaginasRegistros, p + 1))}
+                  className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
         </form>
       </div>
     </div>
