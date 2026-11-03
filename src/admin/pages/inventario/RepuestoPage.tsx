@@ -10,6 +10,7 @@ import {
   AlertCircle,
   ShieldCheck,
   User,
+  History,
 } from 'lucide-react';
 import { useRepuestos } from '../../hooks/useRepuestos';
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
@@ -18,12 +19,13 @@ export const RepuestoPage = () => {
   const navigate = useNavigate();
   const { repuestos, inventario, ordenes, isLoading } = useRepuestos();
 
-  // Opciones de filtrado: sku, serial, service_tag, estado y propietario
+  // Opciones de filtrado: sku, serial, service_tag, estado, propietario y modo histórico
   const [skuFilter, setSkuFilter] = useState('');
   const [serialFilter, setSerialFilter] = useState('');
   const [serviceTagFilter, setServiceTagFilter] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<'all' | 'nuevo' | 'reparado' | 'pendiente_reparacion'>('all');
   const [propietarioFilter, setPropietarioFilter] = useState<'all' | 'taller' | 'cliente'>('all');
+  const [modoHistorico, setModoHistorico] = useState<boolean>(false);
 
   // Paginación: Máximo 7 filas por página según el boceto
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,9 +80,14 @@ export const RepuestoPage = () => {
         if (propietarioFilter === 'cliente' && isTaller) return false;
       }
 
+      // 6. Filtro por Modo Histórico: si está desactivado (false), solo registros con id_orden_salida = null
+      if (!modoHistorico && r.id_orden_salida !== null && r.id_orden_salida !== undefined) {
+        return false;
+      }
+
       return true;
     });
-  }, [repuestos, inventarioMap, skuFilter, serialFilter, serviceTagFilter, estadoFilter, propietarioFilter]);
+  }, [repuestos, inventarioMap, skuFilter, serialFilter, serviceTagFilter, estadoFilter, propietarioFilter, modoHistorico]);
 
   // Ordenar el arreglo filteredRepuestos por el campo id_repuesto de forma descendente
   filteredRepuestos.sort((a: RepuestoItem, b: RepuestoItem) => {
@@ -204,6 +211,30 @@ export const RepuestoPage = () => {
               <option value="cliente">Cliente</option>
             </select>
           </div>
+        </div>
+
+        {/* Control de Modo Histórico */}
+        <div className="pt-1 flex items-center justify-between border-t border-border/60">
+          <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={modoHistorico}
+              onChange={(e) => {
+                setModoHistorico(e.target.checked);
+                setCurrentPage(1);
+              }}
+              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-border/80 cursor-pointer accent-blue-600"
+            />
+            <span className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5 text-blue-500" />
+              Modo histórico
+            </span>
+          </label>
+          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+            {modoHistorico
+              ? 'Mostrando todos los registros (histórico completo)'
+              : 'Mostrando solo registros disponibles en taller (sin orden de salida)'}
+          </span>
         </div>
       </div>
 

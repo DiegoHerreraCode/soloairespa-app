@@ -137,6 +137,7 @@ export const OrdenReparacionFormPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['reparaciones-listado'] });
       queryClient.invalidateQueries({ queryKey: ['repuestos-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventario-catalogo'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       navigate('/admin/ordenes/listado');
     },
     onError: (error: any) => {

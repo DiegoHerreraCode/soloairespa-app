@@ -239,6 +239,7 @@ export const OrdenRecambioFormPage: React.FC = () => {
       toast.success(
         `Orden de Recambio #${ordenCreada?.id_orden || ''} registrada exitosamente.`
       );
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['ordenes-listado'] });
       queryClient.invalidateQueries({ queryKey: ['repuestos-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventario-catalogo'] });

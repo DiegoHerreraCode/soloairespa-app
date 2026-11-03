@@ -240,17 +240,21 @@ export const ItemPage = () => {
           <table className="w-full text-left text-xs sm:text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">sku</th>
-                <th className="py-3 px-4">nombre</th>
-                <th className="py-3 px-4">tipo</th>
-                <th className="py-3 px-4">condicion</th>
+                <th className="py-3 px-4 text-center">sku</th>
+                <th className="py-3 px-4 text-center">nombre</th>
+                <th className="py-3 px-4 text-center">tipo</th>
+                <th className="py-3 px-4 text-center">condicion</th>
+                <th className="py-3 px-4 text-center">cantidad total</th>
+                <th className="py-3 px-4 text-center">cantidad propia</th>
+                <th className="py-3 px-4 text-center">cantidad cliente</th>
+                <th className="py-3 px-4 text-center">stock minimo</th>
                 <th className="py-3 px-4 text-center">acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                       Cargando listado de items...
@@ -259,7 +263,7 @@ export const ItemPage = () => {
                 </tr>
               ) : paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-muted-foreground">
                     <Package className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
                     No se encontraron items de inventario con los filtros seleccionados
                   </td>
@@ -272,23 +276,43 @@ export const ItemPage = () => {
                       className="hover:bg-accent/40 transition-colors"
                     >
                       {/* sku */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
                         {item.sku || 'N/A'}
                       </td>
 
                       {/* nombre */}
-                      <td className="py-3.5 px-4 font-semibold text-foreground">
+                      <td className="py-3.5 px-4 font-semibold text-foreground text-center">
                         {item.nombre}
                       </td>
 
                       {/* tipo */}
-                      <td className="py-3.5 px-4 capitalize text-foreground">
+                      <td className="py-3.5 px-4 capitalize text-foreground text-center">
                         {item.tipo}
                       </td>
 
                       {/* condicion */}
-                      <td className="py-3.5 px-4 uppercase text-foreground font-medium">
+                      <td className="py-3.5 px-4 uppercase text-foreground font-medium text-center">
                         {item.condicion || 'NA'}
+                      </td>
+
+                      {/* cantidad total */}
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-foreground">
+                        {item.cantidad_total ?? 0}
+                      </td>
+
+                      {/* cantidad propia */}
+                      <td className="py-3.5 px-4 text-center font-mono text-foreground">
+                        {item.cantidad_propia ?? 0}
+                      </td>
+
+                      {/* cantidad cliente */}
+                      <td className="py-3.5 px-4 text-center font-mono text-foreground">
+                        {item.cantidad_cliente ?? 0}
+                      </td>
+
+                      {/* stock minimo */}
+                      <td className="py-3.5 px-4 text-center font-mono text-muted-foreground">
+                        {item.stock_minimo ?? 0}
                       </td>
 
                       {/* acciones: Editar */}

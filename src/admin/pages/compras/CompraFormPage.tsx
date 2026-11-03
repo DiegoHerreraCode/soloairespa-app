@@ -19,9 +19,11 @@ import {
 import { getCompraByIdAction } from '../../actions/get-compra-by-id.action';
 import { getProveedoresAction } from '../../actions/get-proveedores.action';
 import { getInventarioAction } from '../../actions/get-inventario.action';
+import { getPagosComprasAction } from '../../actions/get-pagos-compras.action';
 import { useCompraMutation } from '../../hooks/useCompraMutation';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { DetalleCompraSerial, CompraPagoPayload } from '../../interfaces/compra.interface';
+import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
 
 interface CartItem {
   id_inventario: number;
@@ -54,6 +56,13 @@ export const CompraFormPage = () => {
   const { data: inventario = [] } = useQuery({
     queryKey: ['inventario-select'],
     queryFn: getInventarioAction,
+  });
+
+  // 3. Cargar todos los pagos de compras si estamos en modo detalle (fallback de seguridad)
+  const { data: todosLosPagosCompras = [] } = useQuery({
+    queryKey: ['pagos-compras-listado'],
+    queryFn: getPagosComprasAction,
+    enabled: !isCreating,
   });
 
   // ESTADOS DEL FORMULARIO DE CABECERA
@@ -425,6 +434,13 @@ export const CompraFormPage = () => {
   if (!isCreating && compraData) {
     const proveedor = proveedores.find((p) => p.id_proveedor === compraData.id_proveedor) || compraData.proveedor;
 
+    // Obtener los pagos asociados a esta compra (desde compraData.pagosCompras o filtrando todosLosPagosCompras)
+    const pagosAsociados: PagoCompraItem[] = (
+      compraData.pagosCompras && compraData.pagosCompras.length > 0
+        ? compraData.pagosCompras
+        : todosLosPagosCompras.filter((p) => Number(p.id_compra) === Number(compraData.id_compra))
+    ).slice().sort((a, b) => a.id_pago_compra - b.id_pago_compra);
+
     return (
       <div className="space-y-6 max-w-6xl animate-fadeIn mx-auto">
         {/* Encabezado */}
@@ -578,6 +594,90 @@ export const CompraFormPage = () => {
                 ${Number(compraData.monto_total || 0).toLocaleString('es-CL')}
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Tabla de Pagos Asociados a la Compra */}
+        <div className="bg-card p-6 rounded-2xl border border-border/80 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-blue-500" />
+              Pagos y Cuotas Asociadas a la Compra
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {pagosAsociados.length} cuota(s) programada(s)
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
+                  <th className="py-2.5 px-3 text-center">ID Pago</th>
+                  <th className="py-2.5 px-3 text-center">% Monto Total</th>
+                  <th className="py-2.5 px-3 text-center">Monto</th>
+                  <th className="py-2.5 px-3 text-center">Abono al Bien</th>
+                  <th className="py-2.5 px-3 text-center">Abono al IVA</th>
+                  <th className="py-2.5 px-3 text-center">Fecha Pago Acordada</th>
+                  <th className="py-2.5 px-3 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {pagosAsociados.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                      No hay cuotas ni pagos registrados para esta compra
+                    </td>
+                  </tr>
+                ) : (
+                  pagosAsociados.map((pago) => {
+                    const porcentaje = Number(pago.porcentaje_monto_total || 0);
+                    const monto = Number(pago.monto_a_pagar || 0);
+                    const abonoBien = Number(pago.abono_al_bien || 0);
+                    const abonoIva = Number(pago.abono_al_iva || 0);
+                    const fechaAcordada = pago.fecha_pago_acordada
+                      ? pago.fecha_pago_acordada.split('T')[0]
+                      : '-';
+
+                    return (
+                      <tr key={pago.id_pago_compra} className="hover:bg-accent/30 transition-colors">
+                        <td className="py-3 px-3 text-center font-mono font-bold text-foreground">
+                          #{pago.id_pago_compra}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono">
+                          {porcentaje.toFixed(2)}%
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono font-bold text-foreground">
+                          ${monto.toLocaleString('es-CL')}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono text-foreground">
+                          ${abonoBien.toLocaleString('es-CL')}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono text-foreground">
+                          ${abonoIva.toLocaleString('es-CL')}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono text-muted-foreground">
+                          {fechaAcordada}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          {pago.estado === 'realizado' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Realizado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                              <Clock className="w-3 h-3" />
+                              Pendiente
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

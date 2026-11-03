@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import {
   ClipboardList,
   AlertTriangle,
@@ -8,7 +9,7 @@ import {
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { MetricCard } from '../../components/dashboard/MetricCard';
 import { MonthlyOrdersBarChart } from '../../components/dashboard/MonthlyOrdersBarChart';
-import { OrderStatusPieChart } from '../../components/dashboard/OrderStatusPieChart';
+import { OrderStatusPieChart, type OrderStatusFilterMode } from '../../components/dashboard/OrderStatusPieChart';
 import { DashboardCalendar } from '../../components/dashboard/DashboardCalendar';
 import { RecentOrdersTable } from '../../components/dashboard/RecentOrdersTable';
 import { QuickActionsTable } from '../../components/dashboard/QuickActionsTable';
@@ -16,6 +17,9 @@ import { Button } from '@/components/ui/button';
 
 export const DashboardPage = () => {
   const { ordenes, inventario, repuestos, pagosCompras, isLoading, refetchAll } = useDashboardData();
+
+  // Estado para el modo de filtrado de la gráfica de pastel (histórico vs mes actual)
+  const [pieFilterMode, setPieFilterMode] = useState<OrderStatusFilterMode>('mes_actual');
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -65,13 +69,27 @@ export const DashboardPage = () => {
     });
   }
 
-  // 6. Gráfica de pastel: Distribución por estados operativos de órdenes
-  const pieData = {
-    en_espera: ordenes.filter((o) => o.estado_operativo === 'en_espera').length,
-    en_proceso: ordenes.filter((o) => o.estado_operativo === 'en_proceso').length,
-    finalizada: ordenes.filter((o) => o.estado_operativo === 'finalizada').length,
-    anulada: ordenes.filter((o) => o.estado_operativo === 'anulada').length,
-  };
+  // 6. Gráfica de pastel: Distribución por estados operativos de órdenes (con filtrado modo histórico o mes actual)
+  const ordenesParaPie = useMemo(() => {
+    if (pieFilterMode === 'mes_actual') {
+      return ordenes.filter((ord) => {
+        if (!ord.fecha_creacion) return false;
+        const d = new Date(ord.fecha_creacion);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+    }
+    // 'historico' (todas las órdenes)
+    return ordenes;
+  }, [ordenes, pieFilterMode, currentMonth, currentYear]);
+
+  const pieData = useMemo(() => {
+    return {
+      en_espera: ordenesParaPie.filter((o) => o.estado_operativo === 'en_espera').length,
+      en_proceso: ordenesParaPie.filter((o) => o.estado_operativo === 'en_proceso').length,
+      finalizada: ordenesParaPie.filter((o) => o.estado_operativo === 'finalizada').length,
+      anulada: ordenesParaPie.filter((o) => o.estado_operativo === 'anulada').length,
+    };
+  }, [ordenesParaPie]);
 
   // 7. Calendario 1: Fechas de pagos pendientes a proveedores (fecha_pago_acordada)
   const fechasPagosProveedores = pagosCompras
@@ -156,6 +174,8 @@ export const DashboardPage = () => {
         <OrderStatusPieChart
           title="Distribución de Estados Operativos"
           data={pieData}
+          filterMode={pieFilterMode}
+          onFilterModeChange={setPieFilterMode}
         />
       </section>
 

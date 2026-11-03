@@ -5,6 +5,8 @@ interface PieSegment {
   bgDot: string;
 }
 
+export type OrderStatusFilterMode = 'historico' | 'mes_actual';
+
 interface Props {
   title: string;
   data: {
@@ -13,9 +15,16 @@ interface Props {
     finalizada: number;
     anulada: number;
   };
+  filterMode?: OrderStatusFilterMode;
+  onFilterModeChange?: (mode: OrderStatusFilterMode) => void;
 }
 
-export const OrderStatusPieChart = ({ title, data }: Props) => {
+export const OrderStatusPieChart = ({
+  title,
+  data,
+  filterMode = 'historico',
+  onFilterModeChange,
+}: Props) => {
   const segments: PieSegment[] = [
     { label: 'En Espera', count: data.en_espera, color: '#f59e0b', bgDot: 'bg-amber-500' },
     { label: 'En Proceso', count: data.en_proceso, color: '#3b82f6', bgDot: 'bg-blue-500' },
@@ -32,11 +41,46 @@ export const OrderStatusPieChart = ({ title, data }: Props) => {
 
   return (
     <div className="bg-card p-6 rounded-2xl border border-border/80 shadow-xs flex flex-col justify-between h-full">
-      <div>
-        <h3 className="text-base font-bold text-foreground">{title}</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Distribución cuantitativa de estados operativos
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-foreground">{title}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Distribución cuantitativa de estados operativos
+          </p>
+        </div>
+
+        {/* Opciones de filtrado mutuamente excluyentes: Modo Histórico vs Mes Actual */}
+        <div className="flex items-center gap-4 sm:gap-6 pt-1 sm:pt-0 self-end sm:self-auto">
+          {/* Modo Histórico */}
+          <label className="flex flex-col items-center gap-1.5 cursor-pointer group select-none">
+            <span className="text-[11px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+              Modo Histórico
+            </span>
+            <input
+              type="radio"
+              name="order_status_filter"
+              value="historico"
+              checked={filterMode === 'historico'}
+              onChange={() => onFilterModeChange?.('historico')}
+              className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-border/80 cursor-pointer accent-blue-600"
+            />
+          </label>
+
+          {/* Mes Actual */}
+          <label className="flex flex-col items-center gap-1.5 cursor-pointer group select-none">
+            <span className="text-[11px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+              Mes Actual
+            </span>
+            <input
+              type="radio"
+              name="order_status_filter"
+              value="mes_actual"
+              checked={filterMode === 'mes_actual'}
+              onChange={() => onFilterModeChange?.('mes_actual')}
+              className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-border/80 cursor-pointer accent-blue-600"
+            />
+          </label>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col sm:flex-row items-center justify-around gap-6">

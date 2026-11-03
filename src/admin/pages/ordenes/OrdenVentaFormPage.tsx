@@ -346,6 +346,7 @@ export const OrdenVentaFormPage: React.FC = () => {
       toast.success(
         `Orden de Venta #${ordenCreada?.id_orden || ''} registrada exitosamente.`
       );
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['ordenes-listado'] });
       queryClient.invalidateQueries({ queryKey: ['repuestos-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventario-catalogo'] });
