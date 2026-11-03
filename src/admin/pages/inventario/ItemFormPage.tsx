@@ -41,7 +41,7 @@ export const ItemFormPage = () => {
   const [sku, setSku] = useState('');
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState<'insumo' | 'compresor' | 'valvula' | 'equipo'>('insumo');
-  const [condicion, setCondicion] = useState<string>('');
+  const [condicion, setCondicion] = useState<string>('NA');
   const [stockMinimo, setStockMinimo] = useState<number | ''>(5);
   const [porcentajeIva, setPorcentajeIva] = useState<number | ''>(19);
   const [porcentajeGanancia, setPorcentajeGanancia] = useState<number | ''>(30);
