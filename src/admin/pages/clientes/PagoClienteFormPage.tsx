@@ -196,7 +196,22 @@ export const PagoClienteFormPage = () => {
               </label>
               <select
                 value={idOrden}
-                onChange={(e) => setIdOrden(e.target.value)}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  setIdOrden(selectedId);
+                  if (selectedId) {
+                    const orden = ordenes.find((o) => o.id_orden === Number(selectedId));
+                    if (orden) {
+                      // Precargar automáticamente el monto pendiente de la orden (o monto_total como fallback)
+                      const montoAPagar = orden.monto_pendiente !== undefined && orden.monto_pendiente !== null
+                        ? String(orden.monto_pendiente)
+                        : String(orden.monto_total || '');
+                      setMonto(montoAPagar);
+                    }
+                  } else {
+                    setMonto('');
+                  }
+                }}
                 required
                 className="w-full px-3.5 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
               >
