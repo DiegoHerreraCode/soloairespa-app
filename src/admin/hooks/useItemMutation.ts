@@ -26,8 +26,12 @@ export const useItemMutation = () => {
           : 'Ítem de inventario actualizado correctamente'
       );
       queryClient.invalidateQueries({ queryKey: ['inventario-listado'] });
+      queryClient.invalidateQueries({ queryKey: ['inventario-catalogo'] });
+      queryClient.invalidateQueries({ queryKey: ['inventario-proveedores'] });
+      queryClient.invalidateQueries({ queryKey: ['inventario-proveedores-listado'] });
       if (variables.id && variables.id !== 'new') {
         queryClient.invalidateQueries({ queryKey: ['inventario-item', variables.id] });
+        queryClient.invalidateQueries({ queryKey: ['inventario-proveedores-item', variables.id] });
       }
       navigate('/admin/inventario/items');
     },

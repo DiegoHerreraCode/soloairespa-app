@@ -17,7 +17,9 @@ import { getClientesAction } from '@/admin/actions/get-clientes.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { getServiciosTallerAction } from '@/admin/actions/get-servicios-taller.action';
 import { getTiposOrdenesAction } from '@/admin/actions/get-tipos-ordenes.action';
+import { getRepuestosAction } from '@/admin/actions/get-repuestos.action';
 import { createCotizacionAction } from '@/admin/actions/create-cotizacion.action';
+import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
@@ -85,6 +87,21 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
     queryKey: ['tipos-ordenes'],
     queryFn: getTiposOrdenesAction,
   });
+
+  // 5. Cargar repuestos existentes en BD para garantizar unicidad global de service_tag
+  const { data: repuestosExistentes = [] } = useQuery({
+    queryKey: ['repuestos-stock'],
+    queryFn: getRepuestosAction,
+  });
+
+  // Conjunto de service_tags existentes en base de datos
+  const existingServiceTagsSet = useMemo(() => {
+    const set = new Set<string>();
+    repuestosExistentes.forEach((r) => {
+      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
+    });
+    return set;
+  }, [repuestosExistentes]);
 
   // Estados del formulario general
   const [idCliente, setIdCliente] = useState<number | ''>('');
@@ -672,6 +689,38 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
                 onChange={(e) => {
                   const val = e.target.value === '' ? '' : Math.max(1, Number(e.target.value));
                   setNumRepuestosAReparar(val);
+
+                  if (typeof val === 'number' && val > 0) {
+                    setServicesTags((prev) => {
+                      if (val === prev.length) return prev;
+
+                      if (val < prev.length) {
+                        const tagsRemovidos = prev.slice(val);
+                        setInsumosSeleccionados((insumos) =>
+                          insumos.filter((ins) => !tagsRemovidos.includes(ins.service_tag_repuesto_a_reparar))
+                        );
+                        setServiciosSeleccionados((servicios) =>
+                          servicios.filter((srv) => !tagsRemovidos.includes(srv.service_tag_repuesto_a_reparar))
+                        );
+                        return prev.slice(0, val);
+                      }
+
+                      // Expandir generando tags únicos automáticamente por cada unidad faltante
+                      const currentSet = new Set<string>(existingServiceTagsSet);
+                      prev.forEach((t) => currentSet.add(t.toLowerCase().trim()));
+
+                      const newTags = [...prev];
+                      while (newTags.length < val) {
+                        const tag = generarServiceTagUnico('compresor', currentSet);
+                        newTags.push(tag);
+                      }
+                      return newTags;
+                    });
+                  } else {
+                    setServicesTags([]);
+                    setInsumosSeleccionados([]);
+                    setServiciosSeleccionados([]);
+                  }
                 }}
                 className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-semibold"
               />

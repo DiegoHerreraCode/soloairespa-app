@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Boxes,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { getInventarioByIdAction } from '../../actions/get-inventario-by-id.action';
 import { getModelosAction } from '../../actions/get-modelos.action';
@@ -82,11 +84,10 @@ export const ItemFormPage = () => {
     enabled: !!(!isCreating && isSerialized),
   });
 
-  // 5. Cargar proveedores y clientes
+  // 5. Cargar todos los proveedores (necesarios para asociar al crear o editar el ítem)
   const { data: proveedores = [] } = useQuery({
     queryKey: ['proveedores-listado'],
     queryFn: getProveedoresAction,
-    enabled: !!(!isCreating && isSerialized),
   });
 
   const { data: clientes = [] } = useQuery({
@@ -240,6 +241,14 @@ export const ItemFormPage = () => {
   const [porcentajeGanancia, setPorcentajeGanancia] = useState<number | ''>(30);
   const [idModelo, setIdModelo] = useState<number | ''>('');
 
+  // Estado para asociaciones con proveedores
+  interface ProveedorFila {
+    id_proveedor: number | '';
+    codigo_proveedor: string;
+    ultimo_monto_compra: number | '';
+  }
+  const [proveedoresAsociados, setProveedoresAsociados] = useState<ProveedorFila[]>([]);
+
   // Sincronizar datos al editar
   useEffect(() => {
     if (itemData) {
@@ -251,6 +260,19 @@ export const ItemFormPage = () => {
       setPorcentajeIva(itemData.porcentaje_iva !== undefined && itemData.porcentaje_iva !== null ? Number(itemData.porcentaje_iva) : 19);
       setPorcentajeGanancia(itemData.porcentaje_ganancia !== undefined && itemData.porcentaje_ganancia !== null ? Number(itemData.porcentaje_ganancia) : 30);
       setIdModelo(itemData.id_modelo || '');
+
+      // Cargar homologaciones existentes con proveedores si las tiene
+      if (itemData.inventario_proveedores && Array.isArray(itemData.inventario_proveedores)) {
+        setProveedoresAsociados(
+          itemData.inventario_proveedores.map((ip) => ({
+            id_proveedor: ip.id_proveedor,
+            codigo_proveedor: ip.codigo_proveedor || '',
+            ultimo_monto_compra: ip.ultimo_monto_compra !== undefined && ip.ultimo_monto_compra !== null ? Number(ip.ultimo_monto_compra) : '',
+          }))
+        );
+      } else {
+        setProveedoresAsociados([]);
+      }
     }
   }, [itemData]);
 
@@ -299,8 +321,36 @@ export const ItemFormPage = () => {
       return;
     }
 
+    // Validar filas de proveedores asociados (si agregó alguna fila)
+    const proveedoresPayload = [];
+    const proveedoresSeleccionadosIds = new Set<number>();
+
+    for (let i = 0; i < proveedoresAsociados.length; i++) {
+      const p = proveedoresAsociados[i];
+      if (!p.id_proveedor) {
+        toast.warning(`Selecciona un proveedor válido en la fila #${i + 1}`);
+        return;
+      }
+      if (proveedoresSeleccionadosIds.has(Number(p.id_proveedor))) {
+        toast.warning(`El proveedor en la fila #${i + 1} está duplicado`);
+        return;
+      }
+      proveedoresSeleccionadosIds.add(Number(p.id_proveedor));
+
+      if (!p.codigo_proveedor.trim()) {
+        toast.warning(`Ingresa el código de proveedor en la fila #${i + 1}`);
+        return;
+      }
+
+      proveedoresPayload.push({
+        id_proveedor: Number(p.id_proveedor),
+        codigo_proveedor: p.codigo_proveedor.trim(),
+        ultimo_monto_compra: p.ultimo_monto_compra !== '' ? Number(p.ultimo_monto_compra) : 0,
+      });
+    }
+
     if (isCreating) {
-      // Crear: id_modelo, sku, nombre, tipo, condicion, stock_minimo, porcentaje_iva y porcentaje_ganancia
+      // Crear: id_modelo, sku, nombre, tipo, condicion, stock_minimo, porcentaje_iva, porcentaje_ganancia y proveedores
       saveItem({
         payload: {
           id_modelo: Number(idModelo),
@@ -311,11 +361,12 @@ export const ItemFormPage = () => {
           stock_minimo: Number(stockMinimo),
           porcentaje_iva: Number(porcentajeIva),
           porcentaje_ganancia: Number(porcentajeGanancia),
+          proveedores: proveedoresPayload,
         },
         id: undefined,
       });
     } else {
-      // Editar: solo editable sku, nombre, stock_minimo, porcentaje_iva y porcentaje_ganancia
+      // Editar: sku, nombre, stock_minimo, porcentaje_iva, porcentaje_ganancia y proveedores
       saveItem({
         payload: {
           sku: sku.trim().toUpperCase(),
@@ -323,6 +374,7 @@ export const ItemFormPage = () => {
           stock_minimo: Number(stockMinimo),
           porcentaje_iva: Number(porcentajeIva),
           porcentaje_ganancia: Number(porcentajeGanancia),
+          proveedores: proveedoresPayload,
         },
         id,
       });
@@ -562,6 +614,135 @@ export const ItemFormPage = () => {
             </div>
           </div>
 
+          {/* Fila 5: Proveedores que suministran este ítem (Asociaciones In-Situ) */}
+          <div className="pt-2 border-t border-border/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                  Proveedores y Catálogo Asociado
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Asocia los proveedores que suministran este ítem, su código en catálogo y último costo de compra
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setProveedoresAsociados((prev) => [
+                    ...prev,
+                    { id_proveedor: '', codigo_proveedor: '', ultimo_monto_compra: '' },
+                  ])
+                }
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Asociar Proveedor
+              </button>
+            </div>
+
+            {proveedoresAsociados.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-border/80 text-center text-xs text-muted-foreground bg-muted/10">
+                No hay proveedores asociados a este ítem. Puedes agregarlos ahora o vincularlos después en compras.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {proveedoresAsociados.map((pRow, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 p-3 rounded-xl bg-muted/20 border border-border/70 items-center animate-fadeIn"
+                  >
+                    {/* Proveedor */}
+                    <div className="sm:col-span-5 space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Proveedor <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={pRow.id_proveedor}
+                        onChange={(e) => {
+                          const val = e.target.value ? Number(e.target.value) : '';
+                          setProveedoresAsociados((prev) => {
+                            const next = [...prev];
+                            next[idx].id_proveedor = val;
+                            return next;
+                          });
+                        }}
+                        required
+                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
+                      >
+                        <option value="">Selecciona proveedor...</option>
+                        {proveedores.map((prov) => (
+                          <option key={prov.id_proveedor} value={prov.id_proveedor}>
+                            {prov.nombre} ({prov.rut})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Código de Proveedor */}
+                    <div className="sm:col-span-4 space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Código Proveedor <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={pRow.codigo_proveedor}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setProveedoresAsociados((prev) => {
+                            const next = [...prev];
+                            next[idx].codigo_proveedor = val;
+                            return next;
+                          });
+                        }}
+                        placeholder="Ej: 13703-2"
+                        required
+                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      />
+                    </div>
+
+                    {/* Último Costo Compra */}
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Último Costo ($)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={pRow.ultimo_monto_compra}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Number(e.target.value);
+                          setProveedoresAsociados((prev) => {
+                            const next = [...prev];
+                            next[idx].ultimo_monto_compra = val;
+                            return next;
+                          });
+                        }}
+                        placeholder="0"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      />
+                    </div>
+
+                    {/* Botón Eliminar Fila */}
+                    <div className="sm:col-span-1 flex justify-center pt-3 sm:pt-4">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setProveedoresAsociados((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Quitar asociación"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Botón de Guardar */}
           <div className="pt-4 flex justify-end">
             <button
@@ -578,161 +759,160 @@ export const ItemFormPage = () => {
             </button>
           </div>
 
-      {/* 3. Trazabilidad de Existencias Físicas (Solo para Ítems Serializados: compresor, valvula o equipo) */}
-      {!isCreating && isSerialized && (
-        <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-3">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                <Boxes className="w-5 h-5 text-blue-500" />
-                Desglose Físico de Existencias Activas
-              </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Registros que confirman la cantidad total en bodega ({itemData?.cantidad_total ?? 0} unidad{Number(itemData?.cantidad_total) !== 1 ? 'es' : ''})
-              </p>
-            </div>
+          {/* 3. Trazabilidad de Existencias Físicas (Solo para Ítems Serializados: compresor, valvula o equipo) */}
+          {!isCreating && isSerialized && (
+            <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-3">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                    <Boxes className="w-5 h-5 text-blue-500" />
+                    Desglose Físico de Existencias Activas
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Registros que confirman la cantidad total en bodega ({itemData?.cantidad_total ?? 0} unidad{Number(itemData?.cantidad_total) !== 1 ? 'es' : ''})
+                  </p>
+                </div>
 
-            {/* Badges de stocks */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                Total: {itemData?.cantidad_total ?? 0}
-              </span>
-              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Propio: {itemData?.cantidad_propia ?? 0}
-              </span>
-              <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                Cliente: {itemData?.cantidad_cliente ?? 0}
-              </span>
-            </div>
-          </div>
-
-          {/* Tabla de Registros Físicos */}
-          <div className="overflow-x-auto rounded-xl border border-border/70">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-muted/40 border-b border-border/70 text-muted-foreground font-semibold">
-                  <th className="py-2.5 px-3">Identificador</th>
-                  <th className="py-2.5 px-3">Serial</th>
-                  {itemData?.tipo !== 'equipo' && <th className="py-2.5 px-3">Service Tag</th>}
-                  <th className="py-2.5 px-3">Origen</th>
-                  <th className="py-2.5 px-3 text-center">ID Origen</th>
-                  <th className="py-2.5 px-3">Cód. Proveedor</th>
-                  <th className="py-2.5 px-3">Entidad (Proveedor / Cliente)</th>
-                  <th className="py-2.5 px-3">RUT</th>
-                  <th className="py-2.5 px-3 text-center">Titularidad</th>
-                  <th className="py-2.5 px-3 text-center">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {paginatedRegistros.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={itemData?.tipo !== 'equipo' ? 10 : 9}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No se encontraron piezas físicas registradas en existencia para este ítem.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedRegistros.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-accent/30 transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-bold text-foreground">
-                        {reg.identificador}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-foreground font-medium">
-                        {reg.serial}
-                      </td>
-                      {itemData?.tipo !== 'equipo' && (
-                        <td className="py-2.5 px-3 font-mono text-muted-foreground">
-                          {reg.service_tag}
-                        </td>
-                      )}
-                      <td className="py-2.5 px-3">
-                        {reg.tipo_origen === 'compra' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                            <ShoppingCart className="w-3 h-3" />
-                            Compra
-                          </span>
-                        ) : reg.tipo_origen === 'orden' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                            <ClipboardList className="w-3 h-3" />
-                            Orden
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-mono font-bold text-foreground">
-                        {reg.id_origen ? `#${reg.id_origen}` : '-'}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-blue-600 dark:text-blue-400 font-bold">
-                        {reg.codigo_proveedor}
-                      </td>
-                      <td className="py-2.5 px-3 font-medium text-foreground">
-                        <div className="flex items-center gap-1.5 truncate max-w-[200px]" title={reg.origen_nombre}>
-                          {reg.tipo_origen === 'compra' ? (
-                            <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                          ) : (
-                            <User className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                          )}
-                          <span className="truncate">{reg.origen_nombre}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
-                        {reg.origen_rut}
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
-                            reg.propietario_texto.includes('Propio')
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                          }`}
-                        >
-                          {reg.propietario_texto}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-center capitalize text-muted-foreground">
-                        {reg.estado_texto}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginación si hay más de 7 registros */}
-          {totalPaginasRegistros > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-muted-foreground">
-                Mostrando {paginatedRegistros.length} de {registrosSerializados.length} registros
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  disabled={paginaRegistros === 1}
-                  onClick={() => setPaginaRegistros((p) => Math.max(1, p - 1))}
-                  className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-xs font-semibold px-2">
-                  Página {paginaRegistros} de {totalPaginasRegistros}
-                </span>
-                <button
-                  type="button"
-                  disabled={paginaRegistros === totalPaginasRegistros}
-                  onClick={() => setPaginaRegistros((p) => Math.min(totalPaginasRegistros, p + 1))}
-                  className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                {/* Badges de stocks */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Total: {itemData?.cantidad_total ?? 0}
+                  </span>
+                  <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    Propio: {itemData?.cantidad_propia ?? 0}
+                  </span>
+                  <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    Cliente: {itemData?.cantidad_cliente ?? 0}
+                  </span>
+                </div>
               </div>
+
+              {/* Tabla de Registros Físicos */}
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-muted/40 border-b border-border/70 text-muted-foreground font-semibold">
+                      <th className="py-2.5 px-3">Identificador</th>
+                      <th className="py-2.5 px-3">Serial</th>
+                      {itemData?.tipo !== 'equipo' && <th className="py-2.5 px-3">Service Tag</th>}
+                      <th className="py-2.5 px-3">Origen</th>
+                      <th className="py-2.5 px-3 text-center">ID Origen</th>
+                      <th className="py-2.5 px-3">Cód. Proveedor</th>
+                      <th className="py-2.5 px-3">Entidad (Proveedor / Cliente)</th>
+                      <th className="py-2.5 px-3">RUT</th>
+                      <th className="py-2.5 px-3 text-center">Titularidad</th>
+                      <th className="py-2.5 px-3 text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {paginatedRegistros.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={itemData?.tipo !== 'equipo' ? 10 : 9}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          No se encontraron piezas físicas registradas en existencia para este ítem.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedRegistros.map((reg) => (
+                        <tr key={reg.id} className="hover:bg-accent/30 transition-colors">
+                          <td className="py-2.5 px-3 font-mono font-bold text-foreground">
+                            {reg.identificador}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-foreground font-medium">
+                            {reg.serial}
+                          </td>
+                          {itemData?.tipo !== 'equipo' && (
+                            <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                              {reg.service_tag}
+                            </td>
+                          )}
+                          <td className="py-2.5 px-3">
+                            {reg.tipo_origen === 'compra' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                <ShoppingCart className="w-3 h-3" />
+                                Compra
+                              </span>
+                            ) : reg.tipo_origen === 'orden' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                <ClipboardList className="w-3 h-3" />
+                                Orden
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-foreground">
+                            {reg.id_origen ? `#${reg.id_origen}` : '-'}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-blue-600 dark:text-blue-400 font-bold">
+                            {reg.codigo_proveedor}
+                          </td>
+                          <td className="py-2.5 px-3 font-medium text-foreground">
+                            <div className="flex items-center gap-1.5 truncate max-w-[200px]" title={reg.origen_nombre}>
+                              {reg.tipo_origen === 'compra' ? (
+                                <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                              ) : (
+                                <User className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                              )}
+                              <span className="truncate">{reg.origen_nombre}</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                            {reg.origen_rut}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${reg.propietario_texto.includes('Propio')
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                }`}
+                            >
+                              {reg.propietario_texto}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center capitalize text-muted-foreground">
+                            {reg.estado_texto}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación si hay más de 7 registros */}
+              {totalPaginasRegistros > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-xs text-muted-foreground">
+                    Mostrando {paginatedRegistros.length} de {registrosSerializados.length} registros
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={paginaRegistros === 1}
+                      onClick={() => setPaginaRegistros((p) => Math.max(1, p - 1))}
+                      className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-semibold px-2">
+                      Página {paginaRegistros} de {totalPaginasRegistros}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={paginaRegistros === totalPaginasRegistros}
+                      onClick={() => setPaginaRegistros((p) => Math.min(totalPaginasRegistros, p + 1))}
+                      className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
         </form>
       </div>
     </div>
