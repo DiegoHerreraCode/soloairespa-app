@@ -29,6 +29,8 @@ import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { DetalleCompraSerial, CompraPagoPayload } from '../../interfaces/compra.interface';
 import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { QuickCreateProveedorModal } from '@/admin/components/compras/QuickCreateProveedorModal';
+import { QuickCreateItemModal } from '@/admin/components/inventario/QuickCreateItemModal';
 
 interface CartItem {
   id_inventario: number;
@@ -94,6 +96,8 @@ export const CompraFormPage = () => {
 
   // ESTADOS DEL FORMULARIO DE CABECERA
   const [idProveedor, setIdProveedor] = useState('');
+  const [isQuickProveedorOpen, setIsQuickProveedorOpen] = useState(false);
+  const [isQuickItemOpen, setIsQuickItemOpen] = useState(false);
   const [numFacturaBoleta, setNumFacturaBoleta] = useState('');
   const [fechaCompra, setFechaCompra] = useState(new Date().toISOString().split('T')[0]);
   const [tipoPago, setTipoPago] = useState<'contado' | 'credito'>('contado');
@@ -281,7 +285,7 @@ export const CompraFormPage = () => {
   };
 
   // Regla 2: Seleccionar y agregar item de inventario
-  const handleAddItemToCart = (item: InventarioItem) => {
+  const handleAddItemToCart = (item: InventarioItem, overrideCodigoProveedor?: string) => {
     // Si ya fue seleccionado, no permitir re-seleccionarlo
     if (cartItems.some((c) => c.id_inventario === item.id_inventario)) {
       toast.info(`El ítem "${item.nombre}" ya está en la lista de compra`);
@@ -291,7 +295,12 @@ export const CompraFormPage = () => {
     const initialQty = 1;
     const isSerialized = item.tipo !== 'insumo';
     const needsServiceTag = ['compresor', 'valvula'].includes(item.tipo);
-    const codigoProveedorAsociado = codigosProveedorMap.get(item.id_inventario) || '';
+    const codigoProveedorAsociado =
+      overrideCodigoProveedor !== undefined
+        ? overrideCodigoProveedor
+        : codigosProveedorMap.get(item.id_inventario) ||
+          item.inventario_proveedores?.find((ip) => ip.id_proveedor === Number(idProveedor))?.codigo_proveedor ||
+          '';
 
     const currentTags = getCombinedServiceTagsSet();
     const initialSeriales: DetalleCompraSerial[] = isSerialized
@@ -860,9 +869,19 @@ export const CompraFormPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5">
             {/* id_proveedor */}
             <div className="lg:col-span-4 space-y-1">
-              <label className="text-xs font-bold text-foreground">
-                Proveedor <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground">
+                  Proveedor <span className="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickProveedorOpen(true)}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuevo Proveedor
+                </button>
+              </div>
               <SearchableSelect
                 options={proveedores.map((p) => ({
                   value: p.id_proveedor,
@@ -1254,11 +1273,29 @@ export const CompraFormPage = () => {
                   <Search className="w-4 h-4 text-blue-500" />
                   Buscar Ítems
                 </h2>
-                {idProveedor && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    Filtrado por proveedor
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!idProveedor}
+                    onClick={() => {
+                      if (!idProveedor) {
+                        toast.warning('Selecciona un proveedor antes de registrar un nuevo ítem');
+                        return;
+                      }
+                      setIsQuickItemOpen(true);
+                    }}
+                    title={!idProveedor ? 'Debes seleccionar un proveedor primero' : 'Registrar nuevo ítem y homologarlo a este proveedor'}
+                    className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-blue-500"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Nuevo Ítem
+                  </button>
+                  {idProveedor && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                      Filtrado
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Busca por SKU o Código de proveedor. Presiona Enter o "+" para agregar
@@ -1408,6 +1445,28 @@ export const CompraFormPage = () => {
           </button>
         </div>
       </form>
+
+      <QuickCreateProveedorModal
+        isOpen={isQuickProveedorOpen}
+        onClose={() => setIsQuickProveedorOpen(false)}
+        onCreated={(nuevo) => {
+          setIdProveedor(String(nuevo.id_proveedor));
+          setCartItems([]);
+        }}
+      />
+
+      <QuickCreateItemModal
+        isOpen={isQuickItemOpen}
+        onClose={() => setIsQuickItemOpen(false)}
+        defaultProveedorId={idProveedor ? Number(idProveedor) : undefined}
+        onCreated={(nuevo) => {
+          const cod =
+            nuevo.inventario_proveedores?.find((ip) => ip.id_proveedor === Number(idProveedor))?.codigo_proveedor ||
+            nuevo.sku ||
+            '';
+          handleAddItemToCart(nuevo, cod);
+        }}
+      />
     </div>
   );
 };

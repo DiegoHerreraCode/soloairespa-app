@@ -21,6 +21,7 @@ import { getRepuestosAction } from '@/admin/actions/get-repuestos.action';
 import { createCotizacionAction } from '@/admin/actions/create-cotizacion.action';
 import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { QuickCreateClienteModal } from '@/admin/components/clientes/QuickCreateClienteModal';
 
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
@@ -105,6 +106,7 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
 
   // Estados del formulario general
   const [idCliente, setIdCliente] = useState<number | ''>('');
+  const [isQuickClienteOpen, setIsQuickClienteOpen] = useState(false);
   const [numRepuestosAReparar, setNumRepuestosAReparar] = useState<number | ''>('');
   const [inputServiceTag, setInputServiceTag] = useState<string>('');
   const [servicesTags, setServicesTags] = useState<string[]>([]);
@@ -657,9 +659,19 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
             {/* Selector de Cliente */}
             <div className="md:col-span-4 space-y-1.5">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Seleccione al Cliente <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Seleccione al Cliente <span className="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickClienteOpen(true)}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuevo Cliente
+                </button>
+              </div>
               <SearchableSelect
                 options={clientes.map((c) => ({
                   value: c.id_cliente,
@@ -1301,6 +1313,12 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
           </button>
         </div>
       </form>
+
+      <QuickCreateClienteModal
+        isOpen={isQuickClienteOpen}
+        onClose={() => setIsQuickClienteOpen(false)}
+        onCreated={(nuevo) => setIdCliente(nuevo.id_cliente)}
+      />
     </div>
   );
 };

@@ -16,6 +16,7 @@ import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { getTiposOrdenesAction } from '@/admin/actions/get-tipos-ordenes.action';
 import { createCotizacionAction } from '@/admin/actions/create-cotizacion.action';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { QuickCreateClienteModal } from '@/admin/components/clientes/QuickCreateClienteModal';
 
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
@@ -56,6 +57,7 @@ export const CotizacionInicialRecambioFormPage: React.FC = () => {
 
   // Estado del cliente seleccionado
   const [idCliente, setIdCliente] = useState<number | ''>('');
+  const [isQuickClienteOpen, setIsQuickClienteOpen] = useState(false);
 
   // Catálogo permitido para recambio: solo 'compresor' o 'valvula'
   const inventarioPermitido = useMemo(() => {
@@ -311,9 +313,19 @@ export const CotizacionInicialRecambioFormPage: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 2. SELECTOR DE CLIENTE (boceto) */}
         <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2 max-w-md">
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Seleccione al Cliente <span className="text-rose-500">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Seleccione al Cliente <span className="text-rose-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsQuickClienteOpen(true)}
+              className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nuevo Cliente
+            </button>
+          </div>
           <SearchableSelect
             options={clientes.map((c) => ({
               value: c.id_cliente,
@@ -574,6 +586,12 @@ export const CotizacionInicialRecambioFormPage: React.FC = () => {
           </button>
         </div>
       </form>
+
+      <QuickCreateClienteModal
+        isOpen={isQuickClienteOpen}
+        onClose={() => setIsQuickClienteOpen(false)}
+        onCreated={(nuevo) => setIdCliente(nuevo.id_cliente)}
+      />
     </div>
   );
 };

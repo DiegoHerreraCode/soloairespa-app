@@ -30,6 +30,7 @@ import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { getProveedoresAction } from '../../actions/get-proveedores.action';
 import { getClientesAction } from '../../actions/get-clientes.action';
 import { useItemMutation } from '../../hooks/useItemMutation';
+import { QuickCreateModeloModal } from '@/admin/components/inventario/QuickCreateModeloModal';
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
 import type { EquipoItem } from '../../interfaces/equipo.interface';
 
@@ -240,6 +241,7 @@ export const ItemFormPage = () => {
   const [porcentajeIva, setPorcentajeIva] = useState<number | ''>(19);
   const [porcentajeGanancia, setPorcentajeGanancia] = useState<number | ''>(30);
   const [idModelo, setIdModelo] = useState<number | ''>('');
+  const [isQuickModeloOpen, setIsQuickModeloOpen] = useState(false);
 
   // Estado para asociaciones con proveedores
   interface ProveedorFila {
@@ -536,9 +538,19 @@ export const ItemFormPage = () => {
           {/* Fila 3: Modelo Técnico */}
           {isCreating && (
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                Modelo Técnico Asociado
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  Modelo Técnico Asociado
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickModeloOpen(true)}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuevo Modelo
+                </button>
+              </div>
               <select
                 value={idModelo}
                 onChange={(e) => setIdModelo(e.target.value ? Number(e.target.value) : '')}
@@ -915,6 +927,12 @@ export const ItemFormPage = () => {
           )}
         </form>
       </div>
+
+      <QuickCreateModeloModal
+        isOpen={isQuickModeloOpen}
+        onClose={() => setIsQuickModeloOpen(false)}
+        onCreated={(nuevo) => setIdModelo(nuevo.id_modelo)}
+      />
     </div>
   );
 };
