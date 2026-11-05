@@ -675,6 +675,12 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
           </button>
         </div>
       </form>
+
+      <QuickCreateClienteModal
+        isOpen={isQuickClienteOpen}
+        onClose={() => setIsQuickClienteOpen(false)}
+        onCreated={(nuevo) => setIdCliente(nuevo.id_cliente)}
+      />
     </div>
   );
 };

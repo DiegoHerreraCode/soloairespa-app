@@ -775,12 +775,13 @@ export const CompraFormPage = () => {
                   <th className="py-2.5 px-3 text-center">Abono al IVA</th>
                   <th className="py-2.5 px-3 text-center">Fecha Pago Acordada</th>
                   <th className="py-2.5 px-3 text-center">Estado</th>
+                  <th className="py-2.5 px-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {pagosAsociados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                    <td colSpan={8} className="py-6 text-center text-muted-foreground">
                       No hay cuotas ni pagos registrados para esta compra
                     </td>
                   </tr>
@@ -825,6 +826,24 @@ export const CompraFormPage = () => {
                               <Clock className="w-3 h-3" />
                               Pendiente
                             </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          {pago.estado === 'pendiente' ? (
+                            <Link
+                              to={`/admin/compras/pagos-compras/${pago.id_pago_compra}`}
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              Pagar
+                            </Link>
+                          ) : (
+                            <Link
+                              to={`/admin/compras/pagos-compras/${pago.id_pago_compra}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors"
+                            >
+                              Ver
+                            </Link>
                           )}
                         </td>
                       </tr>

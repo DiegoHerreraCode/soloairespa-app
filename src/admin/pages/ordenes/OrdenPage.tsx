@@ -73,6 +73,7 @@ export const OrdenPage = () => {
   const [nombreClienteFilter, setNombreClienteFilter] = useState('');
   const [rutClienteFilter, setRutClienteFilter] = useState('');
   const [idOrdenFilter, setIdOrdenFilter] = useState('');
+  const [tipoOrdenFilter, setTipoOrdenFilter] = useState('all');
   const [estadoOperativoFilter, setEstadoOperativoFilter] = useState('all');
   const [estadoAdministrativoFilter, setEstadoAdministrativoFilter] = useState('all');
   const [fechaDesdeFilter, setFechaDesdeFilter] = useState('');
@@ -160,6 +161,18 @@ export const OrdenPage = () => {
         return false;
       }
 
+      // Filtro por Tipo de Orden
+      if (tipoOrdenFilter !== 'all') {
+        const tipoNombre = (
+          orden.tipo_orden?.nombre ||
+          tiposOrdenesMap.get(orden.id_tipo_orden || 0)?.nombre ||
+          ''
+        ).toLowerCase().trim();
+        if (tipoNombre !== tipoOrdenFilter.toLowerCase().trim()) {
+          return false;
+        }
+      }
+
       // Filtro por Estado Operativo
       if (estadoOperativoFilter !== 'all' && orden.estado_operativo !== estadoOperativoFilter) {
         return false;
@@ -187,9 +200,11 @@ export const OrdenPage = () => {
   }, [
     ordenes,
     clientesMap,
+    tiposOrdenesMap,
     nombreClienteFilter,
     rutClienteFilter,
     idOrdenFilter,
+    tipoOrdenFilter,
     estadoOperativoFilter,
     estadoAdministrativoFilter,
     fechaDesdeFilter,
@@ -257,7 +272,7 @@ export const OrdenPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {/* Nombre Cliente */}
           <div>
             <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
@@ -307,6 +322,26 @@ export const OrdenPage = () => {
               placeholder="Ej: 1"
               className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
             />
+          </div>
+
+          {/* Tipo de Orden */}
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Tipo de Orden
+            </label>
+            <select
+              value={tipoOrdenFilter}
+              onChange={(e) => {
+                setTipoOrdenFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 capitalize"
+            >
+              <option value="all">Todos</option>
+              <option value="venta">Venta</option>
+              <option value="reparacion">Reparación</option>
+              <option value="recambio">Recambio</option>
+            </select>
           </div>
 
           {/* Estado Operativo */}
