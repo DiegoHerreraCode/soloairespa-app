@@ -645,6 +645,12 @@ export const ReparacionFormPage = () => {
   const adminInicioObj = idAdminInicio ? adminsMap.get(Number(idAdminInicio)) : null;
   const adminFinObj = idAdminFin ? adminsMap.get(Number(idAdminFin)) : null;
 
+  // Datos de la orden y cliente asociados (si id_orden != null)
+  const ordenAsociada = idOrden
+    ? (reparacionData?.orden || ordenesMap.get(idOrden))
+    : null;
+  const clienteAsociado = ordenAsociada?.cliente;
+
   const isReadOnly = !isCreating && !isEditingDirecto;
 
   return (
@@ -678,7 +684,7 @@ export const ReparacionFormPage = () => {
 
       {/* 2. ENCABEZADO: service_tag/id_repuesto, estado, admin/fecha inicio, admin/fecha fin */}
       <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs sm:text-sm">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${idOrden && clienteAsociado ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 text-xs sm:text-sm`}>
           {/* service_tag / id_repuesto */}
           <div className="p-3 bg-accent/40 rounded-xl space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
@@ -704,6 +710,22 @@ export const ReparacionFormPage = () => {
               </span>
             )}
           </div>
+
+          {/* Cliente asociado a la orden (si id_orden != null) */}
+          {idOrden && clienteAsociado && (
+            <div className="p-3 bg-accent/40 rounded-xl space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <User className="w-3 h-3 text-purple-500" />
+                Cliente (Orden #{idOrden})
+              </span>
+              <span className="text-xs font-semibold text-foreground block truncate" title={clienteAsociado.nombre}>
+                {clienteAsociado.nombre}
+              </span>
+              <div className="flex items-center gap-1.5 pt-0.5 text-xs text-muted-foreground font-mono">
+                <span>RUT: {clienteAsociado.rut || '-'}</span>
+              </div>
+            </div>
+          )}
 
           {/* estado */}
           <div className="p-3 bg-accent/40 rounded-xl space-y-1">

@@ -18,12 +18,13 @@ import type { ReparacionItem } from '../../interfaces/reparacion.interface';
 
 export const ReparacionPage = () => {
   const navigate = useNavigate();
-  const { reparaciones, repuestos, isLoading } = useReparaciones();
+  const { reparaciones, repuestos, ordenes, isLoading } = useReparaciones();
 
-  // Opciones de filtrado por id_reparacion, id_orden, asociación a orden, estado, fecha desde y fecha hasta
+  // Opciones de filtrado por id_reparacion, id_orden, asociación a orden, cliente (nombre/rut), estado, fecha desde y fecha hasta
 
   const [idReparacionFilter, setIdReparacionFilter] = useState('');
   const [idOrdenFilter, setIdOrdenFilter] = useState('');
+  const [clienteFilter, setClienteFilter] = useState('');
   const [ordenAsociadaFilter, setOrdenAsociadaFilter] = useState<'all' | 'con_orden' | 'sin_orden'>('all');
   const [estadoFilter, setEstadoFilter] = useState<'all' | 'pendiente' | 'en_proceso' | 'finalizada' | 'anulada'>('all');
   const [fechaDesde, setFechaDesde] = useState('');
@@ -39,6 +40,13 @@ export const ReparacionPage = () => {
     repuestos.forEach((r) => map.set(r.id_repuesto, r));
     return map;
   }, [repuestos]);
+
+  // Mapa de órdenes por id_orden para resolver información del cliente
+  const ordenesMap = useMemo(() => {
+    const map = new Map<number, (typeof ordenes)[0]>();
+    ordenes.forEach((o) => map.set(o.id_orden, o));
+    return map;
+  }, [ordenes]);
 
   // Redirección para finalizar reparación pasando por el componente de devolver insumos sobrantes
   const handleFinalizar = (id_reparacion: number) => {
@@ -76,6 +84,27 @@ export const ReparacionPage = () => {
         }
       }
 
+      // 1.1 Filtro por Nombre o RUT de Cliente
+      if (clienteFilter.trim()) {
+        const term = clienteFilter.trim().toLowerCase();
+        const ordenAsociada = rep.id_orden
+          ? (rep.orden || ordenesMap.get(rep.id_orden))
+          : undefined;
+        const clienteObj = ordenAsociada?.cliente;
+        const clienteNombre = (clienteObj?.nombre || '').toLowerCase();
+        const clienteRut = (clienteObj?.rut || '').toLowerCase();
+        const clienteRazonSocial = (clienteObj?.razon_social || '').toLowerCase();
+
+        const matchCliente =
+          clienteNombre.includes(term) ||
+          clienteRut.includes(term) ||
+          clienteRazonSocial.includes(term);
+
+        if (!matchCliente) {
+          return false;
+        }
+      }
+
       // 2. Filtro por asociación a orden (Consideración 6)
       if (ordenAsociadaFilter === 'con_orden' && !rep.id_orden) {
         return false;
@@ -107,7 +136,7 @@ export const ReparacionPage = () => {
 
       return true;
     });
-  }, [reparaciones, idReparacionFilter, idOrdenFilter, ordenAsociadaFilter, estadoFilter, fechaDesde, fechaHasta]);
+  }, [reparaciones, idReparacionFilter, idOrdenFilter, clienteFilter, ordenAsociadaFilter, estadoFilter, fechaDesde, fechaHasta, ordenesMap]);
 
   // Ordenar el arreglo filteredReparaciones por el campo id_reparacion de forma descendente
   filteredReparaciones.sort((a: ReparacionItem, b: ReparacionItem) => {
@@ -163,7 +192,7 @@ export const ReparacionPage = () => {
           Filtros de Búsqueda
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
           {/* Filtro por id_reparacion */}
           <div>
             <input
@@ -191,6 +220,20 @@ export const ReparacionPage = () => {
               }}
               placeholder="Buscar por id_orden..."
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-mono"
+            />
+          </div>
+
+          {/* Filtro por Cliente (Nombre / RUT) */}
+          <div>
+            <input
+              type="text"
+              value={clienteFilter}
+              onChange={(e) => {
+                setClienteFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar cliente (Nombre / RUT)..."
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
             />
           </div>
 
@@ -266,6 +309,7 @@ export const ReparacionPage = () => {
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
                 <th className="py-3 px-4 text-center">id_reparacion</th>
                 <th className="py-3 px-4 text-center">id_orden</th>
+                <th className="py-3 px-4 text-center">Cliente (Nombre / RUT)</th>
                 <th className="py-3 px-4 text-center">service_tag</th>
                 <th className="py-3 px-4 text-center">estado</th>
                 <th className="py-3 px-4 text-center">fecha inicio</th>
@@ -276,7 +320,7 @@ export const ReparacionPage = () => {
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                       Cargando listado de reparaciones...
@@ -285,7 +329,7 @@ export const ReparacionPage = () => {
                 </tr>
               ) : paginatedReparaciones.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
                     <Wrench className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
                     No se encontraron reparaciones con los filtros seleccionados
                   </td>
@@ -295,6 +339,11 @@ export const ReparacionPage = () => {
                   const repuestoAsociado = repuestosMap.get(reparacion.id_repuesto);
                   const serviceTag = repuestoAsociado?.service_tag || (repuestoAsociado?.serial ? `Serial: ${repuestoAsociado.serial}` : 'N/A');
                   const isEnProceso = reparacion.estado === 'en_proceso';
+
+                  const ordenAsociada = reparacion.id_orden
+                    ? (reparacion.orden || ordenesMap.get(reparacion.id_orden))
+                    : undefined;
+                  const cliente = ordenAsociada?.cliente;
 
                   return (
                     <tr
@@ -311,6 +360,22 @@ export const ReparacionPage = () => {
                           <span>{reparacion.id_orden}</span>
                         ) : (
                           <span className="text-muted-foreground font-normal">-</span>
+                        )}
+                      </td>
+
+                      {/* Cliente (Nombre y RUT) */}
+                      <td className="py-3.5 px-4 text-center">
+                        {reparacion.id_orden && cliente ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-foreground text-xs sm:text-sm">
+                              {cliente.nombre}
+                            </span>
+                            <span className="text-[11px] font-mono text-muted-foreground">
+                              {cliente.rut || '-'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic text-xs">Sin orden asociada</span>
                         )}
                       </td>
 
