@@ -29,6 +29,7 @@ import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { getReparacionesAction } from '../../actions/get-reparaciones.action';
 import { updateEstadoServicioTallerAction } from '../../actions/update-estado-servicio-taller.action';
 import { useReparacionMutation } from '../../hooks/useReparacionMutation';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { ServicioTallerItem } from '../../interfaces/servicio-taller.interface';
 
@@ -691,19 +692,23 @@ export const ReparacionFormPage = () => {
               service_tag, id_repuesto
             </span>
             {isCreating ? (
-              <select
+              <SearchableSelect
+                options={repuestosDisponiblesParaReparar.map((r) => {
+                  const tag = r.service_tag || (r.serial ? `Serial: ${r.serial}` : 'Sin tag');
+                  return {
+                    value: r.id_repuesto,
+                    label: `Repuesto #${r.id_repuesto}`,
+                    sublabel: tag,
+                    badge: r.estado,
+                    searchTerms: `${r.id_repuesto} ${tag} ${r.serial || ''} ${r.service_tag || ''}`,
+                  };
+                })}
                 value={idRepuesto}
-                onChange={(e) => handleSelectRepuesto(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
+                onChange={(val) => handleSelectRepuesto(val ? String(val) : '')}
+                placeholder="-- Seleccionar Repuesto --"
+                searchPlaceholder="Buscar por ID repuesto o service tag..."
                 required
-              >
-                <option value="">-- Seleccionar Repuesto --</option>
-                {repuestosDisponiblesParaReparar.map((r) => (
-                  <option key={r.id_repuesto} value={r.id_repuesto}>
-                    #{r.id_repuesto} - {r.service_tag || (r.serial ? `Serial: ${r.serial}` : 'Sin tag')} ({r.estado})
-                  </option>
-                ))}
-              </select>
+              />
             ) : (
               <span className="text-sm font-bold text-foreground font-mono block">
                 {repuestoObj?.service_tag || 'Sin service tag'} (#{idRepuesto})

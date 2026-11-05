@@ -16,7 +16,9 @@ import { getReparacionesInsumosAction } from '@/admin/actions/get-reparaciones-i
 import { getReparacionesServiciosTallerAction } from '@/admin/actions/get-reparaciones-servicios-taller.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { getServiciosTallerAction } from '@/admin/actions/get-servicios-taller.action';
+import { getOrdenesAction } from '@/admin/actions/get-ordenes.action';
 import { createCotizacionExtraAction } from '@/admin/actions/create-cotizacion-extra.action';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 import type { ReparacionItem, ReparacionInsumoItem, ReparacionServicioTallerItem } from '@/admin/interfaces/reparacion.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
@@ -90,6 +92,12 @@ export const CotizacionExtraFormPage: React.FC = () => {
     queryFn: getServiciosTallerAction,
   });
 
+  // 5. Cargar Órdenes para resolver clientes y RUT con total fidelidad
+  const { data: ordenes = [] } = useQuery({
+    queryKey: ['ordenes-listado'],
+    queryFn: getOrdenesAction,
+  });
+
   // Estado de la reparación seleccionada
   const [idReparacionSeleccionada, setIdReparacionSeleccionada] = useState<number | ''>('');
 
@@ -105,6 +113,7 @@ export const CotizacionExtraFormPage: React.FC = () => {
   const insumosCatalogo = useMemo(() => inventario.filter((i) => i.tipo === 'insumo'), [inventario]);
   const inventarioMap = useMemo(() => new Map<number, InventarioItem>(insumosCatalogo.map((i) => [i.id_inventario, i])), [insumosCatalogo]);
   const serviciosCatalogoMap = useMemo(() => new Map<number, ServicioTallerItem>(serviciosCatalogo.map((s) => [s.id_servicio_taller, s])), [serviciosCatalogo]);
+  const ordenesMap = useMemo(() => new Map<number, (typeof ordenes)[0]>(ordenes.map((o) => [o.id_orden, o])), [ordenes]);
 
   // Filtrado de Reparaciones según especificación del boceto:
   // "El select de las reparaciones debe estar filtrado por aquellas que tengan una orden asociada y que no esten ni finalizadas ni anuladas."
@@ -702,24 +711,30 @@ export const CotizacionExtraFormPage: React.FC = () => {
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Seleccione la Reparación <span className="text-rose-500">*</span>
           </label>
-          <select
-            required
-            value={idReparacionSeleccionada}
-            onChange={(e) => setIdReparacionSeleccionada(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-          >
-            <option value="">-- Seleccione la Reparación --</option>
-            {reparacionesDisponibles.map((r) => {
+          <SearchableSelect
+            options={reparacionesDisponibles.map((r) => {
               const tag = r.repuesto?.service_tag || (r.repuesto?.serial ? `Serial: ${r.repuesto.serial}` : `Repuesto #${r.id_repuesto}`);
-              const numOrden = r.orden?.id_orden ? `Orden #${r.orden.id_orden}` : `Orden ID ${r.id_orden}`;
-              const clienteNombre = r.orden?.cliente?.nombre ? ` - ${r.orden.cliente.nombre}` : '';
-              return (
-                <option key={r.id_reparacion} value={r.id_reparacion}>
-                  Reparación #{r.id_reparacion} ({tag}) • {numOrden}{clienteNombre} [{r.estado}]
-                </option>
-              );
+              const numOrden = r.id_orden ? `Orden #${r.id_orden}` : (r.orden?.id_orden ? `Orden #${r.orden.id_orden}` : 'Sin orden');
+
+              const ordenObj = r.id_orden ? (r.orden || ordenesMap.get(r.id_orden)) : r.orden;
+              const clienteObj = ordenObj?.cliente;
+              const clienteNombre = clienteObj?.nombre ? ` • ${clienteObj.nombre}` : '';
+              const clienteRut = clienteObj?.rut ? ` (RUT: ${clienteObj.rut})` : '';
+
+              return {
+                value: r.id_reparacion,
+                label: `Reparación #${r.id_reparacion} (${tag})`,
+                sublabel: `${numOrden}${clienteNombre}${clienteRut}`,
+                badge: r.estado,
+                searchTerms: `${r.id_reparacion} ${tag} ${r.id_orden || ''} ${clienteObj?.nombre || ''} ${clienteObj?.rut || ''}`,
+              };
             })}
-          </select>
+            value={idReparacionSeleccionada}
+            onChange={(val) => setIdReparacionSeleccionada(val ? Number(val) : '')}
+            placeholder="-- Seleccione la Reparación --"
+            searchPlaceholder="Buscar por ID reparación, service tag, orden, cliente o RUT..."
+            required
+          />
           {reparacionesDisponibles.length === 0 && (
             <p className="text-xs text-amber-500 font-medium">
               No hay reparaciones con orden asociada pendientes o en proceso disponibles.

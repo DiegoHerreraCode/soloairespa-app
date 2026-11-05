@@ -28,6 +28,7 @@ import { generarServiceTagUnico } from '../../utils/service-tag-generator';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { DetalleCompraSerial, CompraPagoPayload } from '../../interfaces/compra.interface';
 import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface CartItem {
   id_inventario: number;
@@ -295,21 +296,21 @@ export const CompraFormPage = () => {
     const currentTags = getCombinedServiceTagsSet();
     const initialSeriales: DetalleCompraSerial[] = isSerialized
       ? Array.from({ length: initialQty }, () => {
-          if (needsServiceTag) {
-            const tag = generarServiceTagUnico(item.tipo, currentTags);
-            return { serial: tag, service_tag: tag };
-          }
-          // Equipos: no tienen service_tag, se genera un serial autogenerado único por defecto
+        if (needsServiceTag) {
           const tag = generarServiceTagUnico(item.tipo, currentTags);
-          return { serial: tag, service_tag: '' };
-        })
+          return { serial: tag, service_tag: tag };
+        }
+        // Equipos: no tienen service_tag, se genera un serial autogenerado único por defecto
+        const tag = generarServiceTagUnico(item.tipo, currentTags);
+        return { serial: tag, service_tag: '' };
+      })
       : [];
 
     const relacionProv = inventarioProveedorSeleccionadoMap.get(item.id_inventario);
     const costoUnitarioSugerido =
       relacionProv?.ultimo_monto_compra !== undefined &&
-      relacionProv.ultimo_monto_compra !== null &&
-      Number(relacionProv.ultimo_monto_compra) > 0
+        relacionProv.ultimo_monto_compra !== null &&
+        Number(relacionProv.ultimo_monto_compra) > 0
         ? Number(relacionProv.ultimo_monto_compra)
         : item.ultimo_monto_compra || item.monto_compra_prom || '';
 
@@ -862,25 +863,25 @@ export const CompraFormPage = () => {
               <label className="text-xs font-bold text-foreground">
                 Proveedor <span className="text-rose-500">*</span>
               </label>
-              <select
+              <SearchableSelect
+                options={proveedores.map((p) => ({
+                  value: p.id_proveedor,
+                  label: p.nombre,
+                  sublabel: p.rut ? `RUT: ${p.rut}` : undefined,
+                  searchTerms: `${p.rut || ''}`,
+                }))}
                 value={idProveedor}
-                onChange={(e) => {
-                  const newId = e.target.value;
+                onChange={(val) => {
+                  const newId = val ? String(val) : '';
                   if (newId !== idProveedor) {
                     setIdProveedor(newId);
                     setCartItems([]);
                   }
                 }}
+                placeholder="Selecciona un proveedor..."
+                searchPlaceholder="Buscar por nombre o RUT..."
                 required
-                className="w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              >
-                <option value="">Selecciona un proveedor...</option>
-                {proveedores.map((p) => (
-                  <option key={p.id_proveedor} value={p.id_proveedor}>
-                    {p.nombre} ({p.rut})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* num_factura_boleta */}

@@ -15,6 +15,7 @@ import { getClientesAction } from '@/admin/actions/get-clientes.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { getTiposOrdenesAction } from '@/admin/actions/get-tipos-ordenes.action';
 import { createCotizacionAction } from '@/admin/actions/create-cotizacion.action';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
@@ -313,19 +314,19 @@ export const CotizacionInicialRecambioFormPage: React.FC = () => {
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Seleccione al Cliente <span className="text-rose-500">*</span>
           </label>
-          <select
-            required
+          <SearchableSelect
+            options={clientes.map((c) => ({
+              value: c.id_cliente,
+              label: c.nombre,
+              sublabel: c.rut ? `RUT: ${c.rut}` : undefined,
+              searchTerms: `${c.rut || ''}`,
+            }))}
             value={idCliente}
-            onChange={(e) => setIdCliente(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-          >
-            <option value="">-- Seleccione al Cliente --</option>
-            {clientes.map((c) => (
-              <option key={c.id_cliente} value={c.id_cliente}>
-                {c.nombre} {c.rut ? `(${c.rut})` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setIdCliente(val ? Number(val) : '')}
+            placeholder="-- Seleccione al Cliente --"
+            searchPlaceholder="Buscar por nombre o RUT..."
+            required
+          />
         </div>
 
         {/* 3. LÍNEAS DE RECAMBIO (boceto con bloques y botón +) */}

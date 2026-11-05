@@ -17,6 +17,7 @@ import { getPagoClienteByIdAction } from '../../actions/get-pago-cliente-by-id.a
 import { getClientesAction } from '../../actions/get-clientes.action';
 import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { usePagoClienteMutation } from '../../hooks/usePagoClienteMutation';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 export const PagoClienteFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -174,19 +175,24 @@ export const PagoClienteFormPage = () => {
               <label className="block text-xs font-bold text-foreground mb-1.5">
                 Cliente <span className="text-rose-500">*</span>
               </label>
-              <select
+              <SearchableSelect
+                options={clientes.map((c) => ({
+                  value: c.id_cliente,
+                  label: c.nombre,
+                  sublabel: c.rut ? `RUT: ${c.rut}` : undefined,
+                  searchTerms: `${c.rut || ''} ${c.correo || ''}`,
+                }))}
                 value={idCliente}
-                onChange={(e) => setIdCliente(e.target.value)}
+                onChange={(val) => {
+                  const newId = val ? String(val) : '';
+                  setIdCliente(newId);
+                  setIdOrden('');
+                  setMonto('');
+                }}
+                placeholder="Selecciona un cliente..."
+                searchPlaceholder="Buscar por nombre o RUT..."
                 required
-                className="w-full px-3.5 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              >
-                <option value="">Selecciona un cliente...</option>
-                {clientes.map((c) => (
-                  <option key={c.id_cliente} value={c.id_cliente}>
-                    {c.nombre} ({c.rut})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* Orden de Trabajo */}
@@ -194,10 +200,23 @@ export const PagoClienteFormPage = () => {
               <label className="block text-xs font-bold text-foreground mb-1.5">
                 N° de Orden de Trabajo <span className="text-rose-500">*</span>
               </label>
-              <select
+              <SearchableSelect
+                options={ordenes
+                  .filter((o) => o.estado_operativo === 'finalizada' && o.estado_administrativo != 'pagada' && o.monto_pendiente != 0)
+                  .filter((o) => (!idCliente ? true : Number(o.id_cliente) === Number(idCliente)))
+                  .map((o) => {
+                    const pendiente = Number(o.monto_pendiente || 0).toLocaleString('es-CL');
+                    const total = Number(o.monto_total || 0).toLocaleString('es-CL');
+                    return {
+                      value: o.id_orden,
+                      label: `Orden #${o.id_orden}`,
+                      sublabel: `Pendiente: $${pendiente} (Total: $${total})`,
+                      searchTerms: `${o.id_orden} ${o.cliente?.nombre || ''} ${o.cliente?.rut || ''}`,
+                    };
+                  })}
                 value={idOrden}
-                onChange={(e) => {
-                  const selectedId = e.target.value;
+                onChange={(val) => {
+                  const selectedId = val ? String(val) : '';
                   setIdOrden(selectedId);
                   if (selectedId) {
                     const orden = ordenes.find((o) => o.id_orden === Number(selectedId));
@@ -212,19 +231,10 @@ export const PagoClienteFormPage = () => {
                     setMonto('');
                   }
                 }}
+                placeholder="Selecciona la orden..."
+                searchPlaceholder="Buscar por ID de orden..."
                 required
-                className="w-full px-3.5 py-2 text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              >
-                <option value="">Selecciona la orden...</option>
-                {ordenes
-                  .filter((o) => o.estado_operativo === 'finalizada' && o.estado_administrativo != 'pagada' && o.monto_pendiente != 0)
-                  .filter((o) => (!idCliente ? true : Number(o.id_cliente) === Number(idCliente)))
-                  .map((o) => (
-                    <option key={o.id_orden} value={o.id_orden}>
-                      Orden #{o.id_orden} - Pendiente: ${Number(o.monto_pendiente || 0).toLocaleString('es-CL')} (Total: ${Number(o.monto_total || 0).toLocaleString('es-CL')})
-                    </option>
-                  ))}
-              </select>
+              />
             </div>
 
             {/* Monto del Pago */}
