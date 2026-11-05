@@ -27,8 +27,10 @@ import { getComprasAction } from '../../actions/get-compras.action';
 import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { getProveedoresAction } from '../../actions/get-proveedores.action';
 import { getClientesAction } from '../../actions/get-clientes.action';
+import { getInventarioProveedoresAction } from '../../actions/get-inventario-proveedores.action';
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
 import type { EquipoItem } from '../../interfaces/equipo.interface';
+import type { InventarioProveedorItem } from '../../interfaces/inventario-proveedor.interface';
 
 export const ItemDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,11 +73,17 @@ export const ItemDetailPage = () => {
     enabled: !!isSerialized,
   });
 
-  // 6. Cargar proveedores y clientes
+  // 6. Cargar todos los proveedores (tanto para serializados como para opciones de compra)
   const { data: proveedores = [] } = useQuery({
     queryKey: ['proveedores-listado'],
     queryFn: getProveedoresAction,
-    enabled: !!isSerialized,
+  });
+
+  // 7. Cargar relaciones inventario-proveedores para ver quiénes suministran este ítem
+  const { data: proveedoresQueSuministran = [], isLoading: isLoadingProveedoresItem } = useQuery<InventarioProveedorItem[]>({
+    queryKey: ['inventario-proveedores-item', id],
+    queryFn: () => getInventarioProveedoresAction({ id_inventario: Number(id) }),
+    enabled: !!id,
   });
 
   const { data: clientes = [] } = useQuery({
@@ -206,7 +214,7 @@ export const ItemDetailPage = () => {
       });
   }, [itemData, isSerialized, id, equipos, repuestos, detallesComprasMap, comprasMap, proveedoresMap, ordenesMap, clientesMap]);
 
-  // Paginación (7 registros por página)
+  // Paginación para tabla de registros serializados (7 por página)
   const [paginaRegistros, setPaginaRegistros] = useState(1);
   const itemsPorPagina = 7;
   const totalPaginasRegistros = Math.ceil(registrosSerializados.length / itemsPorPagina);
@@ -215,6 +223,15 @@ export const ItemDetailPage = () => {
     const inicio = (paginaRegistros - 1) * itemsPorPagina;
     return registrosSerializados.slice(inicio, inicio + itemsPorPagina);
   }, [registrosSerializados, paginaRegistros]);
+
+  // Paginación para tabla de proveedores que suministran este ítem (7 por página)
+  const [paginaProveedores, setPaginaProveedores] = useState(1);
+  const totalPaginasProveedores = Math.ceil(proveedoresQueSuministran.length / itemsPorPagina);
+
+  const paginatedProveedores = useMemo(() => {
+    const inicio = (paginaProveedores - 1) * itemsPorPagina;
+    return proveedoresQueSuministran.slice(inicio, inicio + itemsPorPagina);
+  }, [proveedoresQueSuministran, paginaProveedores]);
 
   if (isLoadingItem) {
     return (
@@ -392,7 +409,118 @@ export const ItemDetailPage = () => {
         </div>
       </div>
 
-      {/* 3. Tabla con los N registros que componen la cantidad total de existencias (Serializados) */}
+      {/* 3. Tabla de Proveedores que suministran este ítem y su último monto de compra */}
+      <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-blue-500" />
+              Proveedores y Opciones de Compra ({proveedoresQueSuministran.length})
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Proveedores que suministran este ítem en su catálogo, con su código respectivo y último costo registrado
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-border/70">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-muted/40 border-b border-border/70 text-muted-foreground font-semibold">
+                <th className="py-2.5 px-3 text-center">Proveedor</th>
+                <th className="py-2.5 px-3 text-center">RUT Proveedor</th>
+                <th className="py-2.5 px-3 text-center">Código Proveedor</th>
+                <th className="py-2.5 px-3 text-center">Último Monto de Compra</th>
+                <th className="py-2.5 px-3 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {isLoadingProveedoresItem ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                      Cargando opciones de proveedores...
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedProveedores.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                    <AlertCircle className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1.5" />
+                    No hay proveedores registrados que suministren este ítem actualmente.
+                  </td>
+                </tr>
+              ) : (
+                paginatedProveedores.map((ip) => {
+                  const prov = ip.proveedor || proveedoresMap.get(ip.id_proveedor);
+
+                  return (
+                    <tr key={ip.id_inventario_proveedor} className="hover:bg-accent/40 transition-colors">
+                      <td className="py-2.5 px-3 font-semibold text-foreground text-center">
+                        {prov?.nombre || `Proveedor #${ip.id_proveedor}`}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground text-center">
+                        {prov?.rut || '-'}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-blue-600 dark:text-blue-400 text-center">
+                        {ip.codigo_proveedor}
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-foreground">
+                        {ip.ultimo_monto_compra !== undefined && ip.ultimo_monto_compra !== null && Number(ip.ultimo_monto_compra) > 0 ? (
+                          `$${Math.round(Number(ip.ultimo_monto_compra)).toLocaleString('es-CL')}`
+                        ) : (
+                          <span className="text-muted-foreground font-normal">Sin compras registradas ($0)</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <Link
+                          to={`/admin/compras/proveedores/${ip.id_proveedor}/catalogo`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors"
+                        >
+                          Ver Catálogo
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación de proveedores si hay más de 7 */}
+        {totalPaginasProveedores > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-muted-foreground">
+              Mostrando {paginatedProveedores.length} de {proveedoresQueSuministran.length} proveedores
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={paginaProveedores === 1}
+                onClick={() => setPaginaProveedores((p) => Math.max(1, p - 1))}
+                className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-semibold px-2">
+                Página {paginaProveedores} de {totalPaginasProveedores}
+              </span>
+              <button
+                type="button"
+                disabled={paginaProveedores === totalPaginasProveedores}
+                onClick={() => setPaginaProveedores((p) => Math.min(totalPaginasProveedores, p + 1))}
+                className="p-1.5 rounded-lg border border-border/80 text-foreground hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Tabla con los N registros que componen la cantidad total de existencias (Serializados) */}
       {isSerialized ? (
         <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-3">
@@ -411,14 +539,14 @@ export const ItemDetailPage = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-muted/40 border-b border-border/70 text-muted-foreground font-semibold">
-                  <th className="py-2.5 px-3">Identificador</th>
-                  <th className="py-2.5 px-3">Serial</th>
-                  {itemData?.tipo !== 'equipo' && <th className="py-2.5 px-3">Service Tag</th>}
-                  <th className="py-2.5 px-3">Origen</th>
+                  <th className="py-2.5 px-3 text-center">Identificador</th>
+                  <th className="py-2.5 px-3 text-center">Serial</th>
+                  {itemData?.tipo !== 'equipo' && <th className="py-2.5 px-3 text-center">Service Tag</th>}
+                  <th className="py-2.5 px-3 text-center">Origen</th>
                   <th className="py-2.5 px-3 text-center">ID Origen</th>
-                  <th className="py-2.5 px-3">Cód. Proveedor</th>
-                  <th className="py-2.5 px-3">Entidad (Proveedor / Cliente)</th>
-                  <th className="py-2.5 px-3">RUT</th>
+                  <th className="py-2.5 px-3 text-center">Cód. Proveedor</th>
+                  <th className="py-2.5 px-3 text-center">Entidad (Proveedor / Cliente)</th>
+                  <th className="py-2.5 px-3 text-center">RUT</th>
                   <th className="py-2.5 px-3 text-center">Titularidad</th>
                   <th className="py-2.5 px-3 text-center">Estado</th>
                 </tr>
@@ -436,18 +564,18 @@ export const ItemDetailPage = () => {
                 ) : (
                   paginatedRegistros.map((reg) => (
                     <tr key={reg.id} className="hover:bg-accent/30 transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-bold text-foreground">
+                      <td className="py-2.5 px-3 font-mono font-bold text-foreground text-center">
                         {reg.identificador}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-foreground font-medium">
+                      <td className="py-2.5 px-3 font-mono text-foreground font-medium text-center">
                         {reg.serial}
                       </td>
                       {itemData?.tipo !== 'equipo' && (
-                        <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                        <td className="py-2.5 px-3 font-mono text-muted-foreground text-center">
                           {reg.service_tag}
                         </td>
                       )}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2.5 px-3 text-center">
                         {reg.tipo_origen === 'compra' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                             <ShoppingCart className="w-3 h-3" />
@@ -465,10 +593,10 @@ export const ItemDetailPage = () => {
                       <td className="py-2.5 px-3 text-center font-mono font-bold text-foreground">
                         {reg.id_origen ? `#${reg.id_origen}` : '-'}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-blue-600 dark:text-blue-400 font-bold">
+                      <td className="py-2.5 px-3 font-mono text-blue-600 dark:text-blue-400 font-bold text-center">
                         {reg.codigo_proveedor}
                       </td>
-                      <td className="py-2.5 px-3 font-medium text-foreground">
+                      <td className="py-2.5 px-3 font-medium text-foreground text-center">
                         <div className="flex items-center gap-1.5 truncate max-w-[200px]" title={reg.origen_nombre}>
                           {reg.tipo_origen === 'compra' ? (
                             <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
@@ -478,16 +606,15 @@ export const ItemDetailPage = () => {
                           <span className="truncate">{reg.origen_nombre}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-muted-foreground">
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground text-center">
                         {reg.origen_rut}
                       </td>
                       <td className="py-2.5 px-3 text-center">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
-                            reg.propietario_texto.includes('Propio')
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                          }`}
+                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${reg.propietario_texto.includes('Propio')
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                            }`}
                         >
                           {reg.propietario_texto}
                         </span>

@@ -21,6 +21,7 @@ export const createInventarioProveedorAction = async (payload: {
   id_proveedor: number;
   id_inventario: number;
   codigo_proveedor: string;
+  ultimo_monto_compra?: number | string;
 }): Promise<InventarioProveedorItem> => {
   const { data } = await apiClient.post<
     ApiResponse<InventarioProveedorItem> | InventarioProveedorItem
@@ -30,7 +31,7 @@ export const createInventarioProveedorAction = async (payload: {
 
 export const updateInventarioProveedorAction = async (
   id: number,
-  payload: { codigo_proveedor: string }
+  payload: { codigo_proveedor?: string; ultimo_monto_compra?: number | string }
 ): Promise<InventarioProveedorItem> => {
   const { data } = await apiClient.put<
     ApiResponse<InventarioProveedorItem> | InventarioProveedorItem

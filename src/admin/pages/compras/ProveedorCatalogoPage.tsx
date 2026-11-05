@@ -71,10 +71,12 @@ export const ProveedorCatalogoPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedInventarioId, setSelectedInventarioId] = useState<string>('');
   const [newCodigoProveedor, setNewCodigoProveedor] = useState('');
+  const [newUltimoMontoCompra, setNewUltimoMontoCompra] = useState<string>('');
 
   // Estados para Modal de Edición de Código
   const [editingItem, setEditingItem] = useState<InventarioProveedorItem | null>(null);
   const [editCodigoProveedor, setEditCodigoProveedor] = useState('');
+  const [editUltimoMontoCompra, setEditUltimoMontoCompra] = useState<string>('');
 
   // Mutación: Crear nuevo registro en el catálogo
   const createMutation = useMutation({
@@ -86,6 +88,7 @@ export const ProveedorCatalogoPage = () => {
       setIsCreateModalOpen(false);
       setSelectedInventarioId('');
       setNewCodigoProveedor('');
+      setNewUltimoMontoCompra('');
     },
     onError: (err: any) => {
       console.error(err);
@@ -93,20 +96,32 @@ export const ProveedorCatalogoPage = () => {
     },
   });
 
-  // Mutación: Editar código
+  // Mutación: Editar código y último monto de compra
   const updateMutation = useMutation({
-    mutationFn: ({ id, codigo }: { id: number; codigo: string }) =>
-      updateInventarioProveedorAction(id, { codigo_proveedor: codigo }),
+    mutationFn: ({
+      id,
+      codigo,
+      ultimoMontoCompra,
+    }: {
+      id: number;
+      codigo: string;
+      ultimoMontoCompra?: number;
+    }) =>
+      updateInventarioProveedorAction(id, {
+        codigo_proveedor: codigo,
+        ultimo_monto_compra: ultimoMontoCompra,
+      }),
     onSuccess: () => {
-      toast.success('Código de proveedor actualizado correctamente');
+      toast.success('Homologación actualizada correctamente');
       queryClient.invalidateQueries({ queryKey: ['inventario-proveedores', idProveedor] });
       queryClient.invalidateQueries({ queryKey: ['inventario-proveedores-listado'] });
       setEditingItem(null);
       setEditCodigoProveedor('');
+      setEditUltimoMontoCompra('');
     },
     onError: (err: any) => {
       console.error(err);
-      toast.error('No se pudo actualizar el código');
+      toast.error('No se pudo actualizar la homologación');
     },
   });
 
@@ -169,6 +184,7 @@ export const ProveedorCatalogoPage = () => {
       id_proveedor: idProveedor,
       id_inventario: Number(selectedInventarioId),
       codigo_proveedor: newCodigoProveedor.trim(),
+      ultimo_monto_compra: newUltimoMontoCompra ? Number(newUltimoMontoCompra) : 0,
     });
   };
 
@@ -179,6 +195,7 @@ export const ProveedorCatalogoPage = () => {
     updateMutation.mutate({
       id: editingItem.id_inventario_proveedor,
       codigo: editCodigoProveedor.trim(),
+      ultimoMontoCompra: editUltimoMontoCompra !== '' ? Number(editUltimoMontoCompra) : undefined,
     });
   };
 
@@ -258,18 +275,19 @@ export const ProveedorCatalogoPage = () => {
           <table className="w-full text-left text-xs sm:text-sm border-collapse">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">ID Homologación</th>
-                <th className="py-3 px-4">Código Proveedor</th>
-                <th className="py-3 px-4">SKU Bodega</th>
-                <th className="py-3 px-4">Nombre del Ítem</th>
-                <th className="py-3 px-4">Tipo</th>
+                <th className="py-3 px-4 text-center">ID Homologación</th>
+                <th className="py-3 px-4 text-center">Código Proveedor</th>
+                <th className="py-3 px-4 text-center">SKU Bodega</th>
+                <th className="py-3 px-4 text-center">Nombre del Ítem</th>
+                <th className="py-3 px-4 text-center">Tipo</th>
+                <th className="py-3 px-4 text-center">Último Costo Compra</th>
                 <th className="py-3 px-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                       Cargando catálogo del proveedor...
@@ -278,7 +296,7 @@ export const ProveedorCatalogoPage = () => {
                 </tr>
               ) : paginatedCatalogo.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
                     <Package className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
                     No hay ítems registrados en el catálogo de este proveedor con los filtros actuales
                   </td>
@@ -290,28 +308,35 @@ export const ProveedorCatalogoPage = () => {
                   return (
                     <tr key={rel.id_inventario_proveedor} className="hover:bg-accent/40 transition-colors">
                       {/* ID Homologación */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                      <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
                         #{rel.id_inventario_proveedor}
                       </td>
 
                       {/* Código Proveedor */}
-                      <td className="py-3.5 px-4 font-mono font-extrabold text-blue-600 dark:text-blue-400">
+                      <td className="py-3.5 px-4 font-mono font-extrabold text-blue-600 dark:text-blue-400 text-center">
                         {rel.codigo_proveedor}
                       </td>
 
                       {/* SKU Bodega */}
-                      <td className="py-3.5 px-4 font-mono font-semibold text-foreground">
+                      <td className="py-3.5 px-4 font-mono font-semibold text-foreground text-center">
                         {itemInv?.sku || 'N/A'}
                       </td>
 
                       {/* Nombre */}
-                      <td className="py-3.5 px-4 font-semibold text-foreground">
+                      <td className="py-3.5 px-4 font-semibold text-foreground text-center">
                         {itemInv?.nombre || `Ítem #${rel.id_inventario}`}
                       </td>
 
                       {/* Tipo */}
-                      <td className="py-3.5 px-4 capitalize text-foreground">
+                      <td className="py-3.5 px-4 capitalize text-foreground text-center">
                         {itemInv?.tipo || '-'}
+                      </td>
+
+                      {/* Último Costo Compra */}
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-foreground">
+                        {rel.ultimo_monto_compra !== undefined && rel.ultimo_monto_compra !== null && Number(rel.ultimo_monto_compra) > 0
+                          ? `$${Math.round(Number(rel.ultimo_monto_compra)).toLocaleString('es-CL')}`
+                          : <span className="text-muted-foreground font-normal">Sin compras ($0)</span>}
                       </td>
 
                       {/* Acciones */}
@@ -321,9 +346,14 @@ export const ProveedorCatalogoPage = () => {
                             onClick={() => {
                               setEditingItem(rel);
                               setEditCodigoProveedor(rel.codigo_proveedor);
+                              setEditUltimoMontoCompra(
+                                rel.ultimo_monto_compra !== undefined && rel.ultimo_monto_compra !== null
+                                  ? String(rel.ultimo_monto_compra)
+                                  : ''
+                              );
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
-                            title="Editar código de proveedor"
+                            title="Editar código y costo de compra"
                           >
                             <Edit2 className="w-3.5 h-3.5 text-blue-500" />
                             Editar
@@ -438,6 +468,29 @@ export const ProveedorCatalogoPage = () => {
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">
+                  Último Costo de Compra ($CLP) <span className="text-muted-foreground font-normal">(Opcional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newUltimoMontoCompra}
+                    onChange={(e) => setNewUltimoMontoCompra(e.target.value)}
+                    placeholder="0"
+                    className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Se precargará automáticamente al emitir una orden de compra con este proveedor.
+                </p>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
                 <button
                   type="button"
@@ -467,7 +520,7 @@ export const ProveedorCatalogoPage = () => {
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-blue-500" />
-                Editar Código de Proveedor
+                Editar Homologación
               </h3>
               <button
                 onClick={() => setEditingItem(null)}
@@ -502,6 +555,26 @@ export const ProveedorCatalogoPage = () => {
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">
+                  Último Costo de Compra ($CLP)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editUltimoMontoCompra}
+                    onChange={(e) => setEditUltimoMontoCompra(e.target.value)}
+                    placeholder="0"
+                    className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
                 <button
                   type="button"
@@ -516,7 +589,7 @@ export const ProveedorCatalogoPage = () => {
                   className="px-4 py-1.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  Actualizar Código
+                  Actualizar Homologación
                 </button>
               </div>
             </form>

@@ -105,18 +105,27 @@ export const CompraFormPage = () => {
   const [skuSearch, setSkuSearch] = useState('');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Mapa de códigos de proveedor: (id_inventario) -> codigo_proveedor para el proveedor seleccionado
-  const codigosProveedorMap = useMemo(() => {
-    const map = new Map<number, string>();
+  // Mapa de relaciones con el proveedor seleccionado: (id_inventario) -> InventarioProveedorItem
+  const inventarioProveedorSeleccionadoMap = useMemo(() => {
+    const map = new Map<number, (typeof inventarioProveedores)[0]>();
     if (!idProveedor) return map;
     const numProvId = Number(idProveedor);
     inventarioProveedores
       .filter((ip) => ip.id_proveedor === numProvId)
       .forEach((ip) => {
-        map.set(ip.id_inventario, ip.codigo_proveedor);
+        map.set(ip.id_inventario, ip);
       });
     return map;
   }, [idProveedor, inventarioProveedores]);
+
+  // Mapa de códigos de proveedor: (id_inventario) -> codigo_proveedor para el proveedor seleccionado
+  const codigosProveedorMap = useMemo(() => {
+    const map = new Map<number, string>();
+    inventarioProveedorSeleccionadoMap.forEach((ip, idInv) => {
+      map.set(idInv, ip.codigo_proveedor);
+    });
+    return map;
+  }, [inventarioProveedorSeleccionadoMap]);
 
   // Ítems de inventario filtrados según el proveedor seleccionado:
   // Si no hay proveedor seleccionado, no se muestra ningún ítem (requiere seleccionar proveedor primero).
@@ -296,6 +305,14 @@ export const CompraFormPage = () => {
         })
       : [];
 
+    const relacionProv = inventarioProveedorSeleccionadoMap.get(item.id_inventario);
+    const costoUnitarioSugerido =
+      relacionProv?.ultimo_monto_compra !== undefined &&
+      relacionProv.ultimo_monto_compra !== null &&
+      Number(relacionProv.ultimo_monto_compra) > 0
+        ? Number(relacionProv.ultimo_monto_compra)
+        : item.ultimo_monto_compra || item.monto_compra_prom || '';
+
     setCartItems((prev) => [
       ...prev,
       {
@@ -303,7 +320,7 @@ export const CompraFormPage = () => {
         inventario: item,
         codigo_proveedor: codigoProveedorAsociado,
         cantidad: initialQty,
-        costo_unitario: item.ultimo_monto_compra || item.monto_compra_prom || '',
+        costo_unitario: costoUnitarioSugerido,
         porcentaje_iva: 19, // IVA chileno por defecto
         seriales: initialSeriales,
       },
