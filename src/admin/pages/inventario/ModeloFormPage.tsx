@@ -6,6 +6,8 @@ import { ArrowLeft, Save, Layers, Building2, AlignLeft, Tag } from 'lucide-react
 import { getModeloByIdAction } from '../../actions/get-modelo-by-id.action';
 import { getMarcasAction } from '../../actions/get-marcas.action';
 import { useModeloMutation } from '../../hooks/useModeloMutation';
+import { QuickCreateMarcaModal } from '@/admin/components/inventario/QuickCreateMarcaModal';
+import { Plus } from 'lucide-react';
 
 export const ModeloFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +32,7 @@ export const ModeloFormPage = () => {
 
   // Estado del formulario
   const [idMarca, setIdMarca] = useState<number | ''>('');
+  const [isQuickMarcaOpen, setIsQuickMarcaOpen] = useState(false);
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
 
@@ -118,15 +121,27 @@ export const ModeloFormPage = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Campo: Marca (id_marca) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-blue-500" />
-              Marca Comercial
-              {!isCreating && (
-                <span className="text-[10px] font-normal normal-case text-amber-500 ml-1">
-                  (No editable)
-                </span>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                Marca Comercial
+                {!isCreating && (
+                  <span className="text-[10px] font-normal normal-case text-amber-500 ml-1">
+                    (No editable)
+                  </span>
+                )}
+              </label>
+              {isCreating && (
+                <button
+                  type="button"
+                  onClick={() => setIsQuickMarcaOpen(true)}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nueva Marca
+                </button>
               )}
-            </label>
+            </div>
 
             {isCreating ? (
               <select
@@ -203,6 +218,12 @@ export const ModeloFormPage = () => {
           </div>
         </form>
       </div>
+
+      <QuickCreateMarcaModal
+        isOpen={isQuickMarcaOpen}
+        onClose={() => setIsQuickMarcaOpen(false)}
+        onCreated={(nueva) => setIdMarca(nueva.id_marca)}
+      />
     </div>
   );
 };

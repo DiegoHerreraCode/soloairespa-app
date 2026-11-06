@@ -22,6 +22,8 @@ import { createCotizacionAction } from '@/admin/actions/create-cotizacion.action
 import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateClienteModal } from '@/admin/components/clientes/QuickCreateClienteModal';
+import { QuickCreateServicioTallerModal } from '@/admin/components/taller/QuickCreateServicioTallerModal';
+import { QuickCreateItemModal } from '@/admin/components/inventario/QuickCreateItemModal';
 
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
@@ -107,6 +109,8 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
   // Estados del formulario general
   const [idCliente, setIdCliente] = useState<number | ''>('');
   const [isQuickClienteOpen, setIsQuickClienteOpen] = useState(false);
+  const [isQuickInsumoOpen, setIsQuickInsumoOpen] = useState(false);
+  const [isQuickServicioOpen, setIsQuickServicioOpen] = useState(false);
   const [numRepuestosAReparar, setNumRepuestosAReparar] = useState<number | ''>('');
   const [inputServiceTag, setInputServiceTag] = useState<string>('');
   const [servicesTags, setServicesTags] = useState<string[]>([]);
@@ -976,7 +980,17 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
             {/* Sidebar lateral: Buscar por SKU */}
             <div className="lg:col-span-3 bg-card rounded-2xl border border-border/80 p-3.5 space-y-3 shadow-xs">
               <div className="space-y-1.5">
-                <span className="text-xs font-bold text-foreground block">Buscar por SKU</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground block">Buscar por SKU</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickInsumoOpen(true)}
+                    className="text-[11px] font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Nuevo Insumo
+                  </button>
+                </div>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <input
@@ -1198,7 +1212,17 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
             {/* Sidebar lateral: Buscar por nombre */}
             <div className="lg:col-span-3 bg-card rounded-2xl border border-border/80 p-3.5 space-y-3 shadow-xs">
               <div className="space-y-1.5">
-                <span className="text-xs font-bold text-foreground block">Buscar por nombre</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground block">Buscar por nombre</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickServicioOpen(true)}
+                    className="text-[11px] font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Nuevo Servicio
+                  </button>
+                </div>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <input
@@ -1318,6 +1342,23 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
         isOpen={isQuickClienteOpen}
         onClose={() => setIsQuickClienteOpen(false)}
         onCreated={(nuevo) => setIdCliente(nuevo.id_cliente)}
+      />
+
+      <QuickCreateItemModal
+        isOpen={isQuickInsumoOpen}
+        onClose={() => setIsQuickInsumoOpen(false)}
+        defaultTipo="insumo"
+        onCreated={(nuevo) => {
+          handleAgregarInsumo(nuevo);
+        }}
+      />
+
+      <QuickCreateServicioTallerModal
+        isOpen={isQuickServicioOpen}
+        onClose={() => setIsQuickServicioOpen(false)}
+        onCreated={(nuevo) => {
+          handleAgregarServicio(nuevo);
+        }}
       />
     </div>
   );

@@ -18,6 +18,8 @@ import { getClientesAction } from '../../actions/get-clientes.action';
 import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { usePagoClienteMutation } from '../../hooks/usePagoClienteMutation';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { QuickCreateClienteModal } from '@/admin/components/clientes/QuickCreateClienteModal';
+import { Plus } from 'lucide-react';
 
 export const PagoClienteFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +51,7 @@ export const PagoClienteFormPage = () => {
 
   // Estado del formulario para creación
   const [idCliente, setIdCliente] = useState('');
+  const [isQuickClienteOpen, setIsQuickClienteOpen] = useState(false);
   const [idOrden, setIdOrden] = useState('');
   const [monto, setMonto] = useState('');
   const [fechaPago, setFechaPago] = useState(new Date().toISOString().split('T')[0]);
@@ -172,9 +175,19 @@ export const PagoClienteFormPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Cliente */}
             <div>
-              <label className="block text-xs font-bold text-foreground mb-1.5">
-                Cliente <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-foreground">
+                  Cliente <span className="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickClienteOpen(true)}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuevo Cliente
+                </button>
+              </div>
               <SearchableSelect
                 options={clientes.map((c) => ({
                   value: c.id_cliente,
@@ -472,6 +485,16 @@ export const PagoClienteFormPage = () => {
           </div>
         </div>
       )}
+
+      <QuickCreateClienteModal
+        isOpen={isQuickClienteOpen}
+        onClose={() => setIsQuickClienteOpen(false)}
+        onCreated={(nuevo) => {
+          setIdCliente(String(nuevo.id_cliente));
+          setIdOrden('');
+          setMonto('');
+        }}
+      />
     </div>
   );
 };

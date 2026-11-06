@@ -6,6 +6,8 @@ import { ArrowLeft, Save, Wrench, Layers, AlignLeft, Tag, DollarSign, Percent } 
 import { getServicioTallerByIdAction } from '../../actions/get-servicio-taller-by-id.action';
 import { getTiposServiciosTallerAction } from '../../actions/get-tipos-servicios-taller.action';
 import { useServicioTallerMutation } from '../../hooks/useServicioTallerMutation';
+import { QuickCreateTipoServicioModal } from '@/admin/components/taller/QuickCreateTipoServicioModal';
+import { Plus } from 'lucide-react';
 
 export const ServicioTallerFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +32,7 @@ export const ServicioTallerFormPage = () => {
 
   // Estado del formulario
   const [idTipoServicio, setIdTipoServicio] = useState<number | ''>('');
+  const [isQuickTipoOpen, setIsQuickTipoOpen] = useState(false);
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [costoBase, setCostoBase] = useState<number>(0);
@@ -146,15 +149,27 @@ export const ServicioTallerFormPage = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Campo: Tipo de Servicio del Taller (id_tipo_servicio_taller) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-blue-500" />
-              Tipo de Servicio del Taller <span className="text-rose-500">*</span>
-              {!isCreating && (
-                <span className="text-[10px] font-normal normal-case text-amber-500 ml-1">
-                  (No editable)
-                </span>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-blue-500" />
+                Tipo de Servicio del Taller <span className="text-rose-500">*</span>
+                {!isCreating && (
+                  <span className="text-[10px] font-normal normal-case text-amber-500 ml-1">
+                    (No editable)
+                  </span>
+                )}
+              </label>
+              {isCreating && (
+                <button
+                  type="button"
+                  onClick={() => setIsQuickTipoOpen(true)}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Nuevo Tipo
+                </button>
               )}
-            </label>
+            </div>
 
             {isCreating ? (
               <select
@@ -284,6 +299,12 @@ export const ServicioTallerFormPage = () => {
           </div>
         </form>
       </div>
+
+      <QuickCreateTipoServicioModal
+        isOpen={isQuickTipoOpen}
+        onClose={() => setIsQuickTipoOpen(false)}
+        onCreated={(nuevo) => setIdTipoServicio(nuevo.id_tipo_servicio_taller)}
+      />
     </div>
   );
 };
