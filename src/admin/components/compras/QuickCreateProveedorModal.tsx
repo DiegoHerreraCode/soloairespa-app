@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { createUpdateProveedorAction } from '@/admin/actions/create-update-proveedor.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import type { ProveedorItem } from '@/admin/interfaces/proveedor.interface';
-import type { CreateUpdateProveedorPayload, ProveedorItemPayload } from '@/admin/actions/create-update-proveedor.action';
+import type { CreateUpdateProveedorPayload } from '@/admin/actions/create-update-proveedor.action';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface QuickCreateProveedorModalProps {
