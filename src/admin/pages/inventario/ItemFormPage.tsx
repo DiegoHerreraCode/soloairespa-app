@@ -30,6 +30,7 @@ import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { getProveedoresAction } from '../../actions/get-proveedores.action';
 import { getClientesAction } from '../../actions/get-clientes.action';
 import { useItemMutation } from '../../hooks/useItemMutation';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateModeloModal } from '@/admin/components/inventario/QuickCreateModeloModal';
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
 import type { EquipoItem } from '../../interfaces/equipo.interface';
@@ -551,18 +552,18 @@ export const ItemFormPage = () => {
                   Nuevo Modelo
                 </button>
               </div>
-              <select
+              <SearchableSelect
+                options={modelos.map((m) => ({
+                  value: m.id_modelo,
+                  label: m.nombre,
+                  sublabel: m.marca ? `Marca: ${m.marca.nombre}` : undefined,
+                  searchTerms: `${m.nombre} ${m.marca?.nombre || ''}`,
+                }))}
                 value={idModelo}
-                onChange={(e) => setIdModelo(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all cursor-pointer"
-              >
-                <option value="">-- Sin modelo asociado --</option>
-                {modelos.map((m) => (
-                  <option key={m.id_modelo} value={m.id_modelo}>
-                    {m.nombre} {m.marca ? `(${m.marca.nombre})` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setIdModelo(val ? Number(val) : '')}
+                placeholder="-- Sin modelo asociado --"
+                searchPlaceholder="Buscar por modelo o marca..."
+              />
             </div>
           )}
 
@@ -669,26 +670,26 @@ export const ItemFormPage = () => {
                       <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                         Proveedor <span className="text-rose-500">*</span>
                       </label>
-                      <select
+                      <SearchableSelect
+                        options={proveedores.map((prov) => ({
+                          value: prov.id_proveedor,
+                          label: prov.nombre,
+                          sublabel: `RUT: ${prov.rut}`,
+                          searchTerms: `${prov.nombre} ${prov.rut}`,
+                        }))}
                         value={pRow.id_proveedor}
-                        onChange={(e) => {
-                          const val = e.target.value ? Number(e.target.value) : '';
+                        onChange={(val) => {
+                          const numVal = val ? Number(val) : '';
                           setProveedoresAsociados((prev) => {
                             const next = [...prev];
-                            next[idx].id_proveedor = val;
+                            next[idx].id_proveedor = numVal;
                             return next;
                           });
                         }}
+                        placeholder="Selecciona proveedor..."
+                        searchPlaceholder="Buscar por nombre o RUT..."
                         required
-                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
-                      >
-                        <option value="">Selecciona proveedor...</option>
-                        {proveedores.map((prov) => (
-                          <option key={prov.id_proveedor} value={prov.id_proveedor}>
-                            {prov.nombre} ({prov.rut})
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     {/* Código de Proveedor */}

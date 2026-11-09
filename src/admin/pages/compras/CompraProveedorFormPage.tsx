@@ -2,10 +2,18 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, Building2 } from 'lucide-react';
+import { ArrowLeft, Save, Building2, Package, Plus, Trash2 } from 'lucide-react';
 import { getProveedorByIdAction } from '../../actions/get-proveedor-by-id.action';
+import { getInventarioAction } from '../../actions/get-inventario.action';
 import { useProveedorMutation } from '../../hooks/useProveedorMutation';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CreateUpdateProveedorPayload } from '../../actions/create-update-proveedor.action';
+
+interface ItemFila {
+  id_inventario: number | '';
+  codigo_proveedor: string;
+  ultimo_monto_compra: number | '';
+}
 
 export const CompraProveedorFormPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +31,12 @@ export const CompraProveedorFormPage = () => {
     enabled: !isCreating,
   });
 
+  // Consulta catálogo completo de inventario
+  const { data: inventario = [] } = useQuery({
+    queryKey: ['inventario-catalogo'],
+    queryFn: getInventarioAction,
+  });
+
   // Estado del formulario local unificado con formData
   const [formData, setFormData] = useState<CreateUpdateProveedorPayload>({
     nombre: '',
@@ -31,6 +45,9 @@ export const CompraProveedorFormPage = () => {
     num_tlf: '',
     direccion: '',
   });
+
+  // Items de inventario asociados a este proveedor
+  const [itemsAsociados, setItemsAsociados] = useState<ItemFila[]>([]);
 
   // Sincronizar datos al cargar el proveedor existente
   useEffect(() => {
@@ -42,6 +59,16 @@ export const CompraProveedorFormPage = () => {
         num_tlf: proveedorData.num_tlf || '',
         direccion: proveedorData.direccion || '',
       });
+
+      if (proveedorData.inventario_proveedores && proveedorData.inventario_proveedores.length > 0) {
+        setItemsAsociados(
+          proveedorData.inventario_proveedores.map((ip) => ({
+            id_inventario: ip.id_inventario,
+            codigo_proveedor: ip.codigo_proveedor || '',
+            ultimo_monto_compra: ip.ultimo_monto_compra !== undefined && ip.ultimo_monto_compra !== null ? Number(ip.ultimo_monto_compra) : '',
+          }))
+        );
+      }
     }
   }, [proveedorData]);
 
@@ -64,8 +91,42 @@ export const CompraProveedorFormPage = () => {
       return;
     }
 
+    // Validar filas de items
+    for (let i = 0; i < itemsAsociados.length; i++) {
+      const it = itemsAsociados[i];
+      if (!it.id_inventario) {
+        toast.warning(`Fila #${i + 1}: Debe seleccionar un ítem de inventario`);
+        return;
+      }
+      if (!it.codigo_proveedor.trim()) {
+        toast.warning(`Fila #${i + 1}: Ingrese el código de proveedor del ítem`);
+        return;
+      }
+    }
+
+    // Validar duplicados de id_inventario
+    const idsSet = new Set<number>();
+    for (const it of itemsAsociados) {
+      if (it.id_inventario) {
+        if (idsSet.has(Number(it.id_inventario))) {
+          toast.warning('No puedes asociar el mismo ítem de inventario más de una vez');
+          return;
+        }
+        idsSet.add(Number(it.id_inventario));
+      }
+    }
+
+    const payload: CreateUpdateProveedorPayload = {
+      ...formData,
+      items: itemsAsociados.map((it) => ({
+        id_inventario: Number(it.id_inventario),
+        codigo_proveedor: it.codigo_proveedor.trim(),
+        ultimo_monto_compra: it.ultimo_monto_compra !== '' ? Number(it.ultimo_monto_compra) : 0,
+      })),
+    };
+
     saveProveedor({
-      payload: formData,
+      payload,
       id: isCreating ? undefined : id,
     });
   };
@@ -189,6 +250,139 @@ export const CompraProveedorFormPage = () => {
               className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
             />
           </div>
+        </div>
+
+        {/* Sección: Ítems que este proveedor suministra / Catálogo */}
+        <div className="pt-2 border-t border-border/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5 text-blue-500" />
+                Ítems de Inventario que Suministra este Proveedor
+              </h4>
+              <p className="text-[11px] text-muted-foreground">
+                Selecciona los ítems que vende este proveedor, su código de catálogo y último costo de compra
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setItemsAsociados((prev) => [
+                  ...prev,
+                  { id_inventario: '', codigo_proveedor: '', ultimo_monto_compra: '' },
+                ])
+              }
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Asociar Ítem
+            </button>
+          </div>
+
+          {itemsAsociados.length === 0 ? (
+            <div className="p-4 rounded-xl border border-dashed border-border/80 text-center text-xs text-muted-foreground bg-muted/10">
+              No hay ítems asociados a este proveedor. Puedes agregarlos ahora o vincularlos después en compras o inventario.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {itemsAsociados.map((itRow, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 p-3 rounded-xl bg-muted/20 border border-border/70 items-center animate-fadeIn"
+                >
+                  {/* Ítem de Inventario */}
+                  <div className="sm:col-span-5 space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Ítem de Inventario <span className="text-rose-500">*</span>
+                    </label>
+                    <SearchableSelect
+                      options={inventario.map((inv) => ({
+                        value: inv.id_inventario,
+                        label: inv.nombre,
+                        sublabel: `SKU: ${inv.sku || 'Sin SKU'} • ${inv.tipo}`,
+                        searchTerms: `${inv.nombre} ${inv.sku || ''} ${inv.tipo}`,
+                      }))}
+                      value={itRow.id_inventario}
+                      onChange={(val) => {
+                        const numVal = val ? Number(val) : '';
+                        setItemsAsociados((prev) => {
+                          const next = [...prev];
+                          next[idx].id_inventario = numVal;
+                          if (numVal && !next[idx].codigo_proveedor) {
+                            const sel = inventario.find((i) => i.id_inventario === numVal);
+                            if (sel?.sku) next[idx].codigo_proveedor = sel.sku;
+                          }
+                          return next;
+                        });
+                      }}
+                      placeholder="Selecciona ítem..."
+                      searchPlaceholder="Buscar por nombre, SKU o tipo..."
+                      required
+                    />
+                  </div>
+
+                  {/* Código Proveedor */}
+                  <div className="sm:col-span-4 space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Código Proveedor <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={itRow.codigo_proveedor}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setItemsAsociados((prev) => {
+                          const next = [...prev];
+                          next[idx].codigo_proveedor = val;
+                          return next;
+                        });
+                      }}
+                      placeholder="Ej: 13703-2"
+                      required
+                      className="w-full px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+
+                  {/* Último Costo Compra */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                      Último Costo ($)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={itRow.ultimo_monto_compra}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : Number(e.target.value);
+                        setItemsAsociados((prev) => {
+                          const next = [...prev];
+                          next[idx].ultimo_monto_compra = val;
+                          return next;
+                        });
+                      }}
+                      placeholder="0"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    />
+                  </div>
+
+                  {/* Botón Eliminar Fila */}
+                  <div className="sm:col-span-1 flex justify-center pt-3 sm:pt-4">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItemsAsociados((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      className="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                      title="Eliminar asociación"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Acciones del Formulario */}

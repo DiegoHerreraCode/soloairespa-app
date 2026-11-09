@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { createUpdateModeloAction } from '@/admin/actions/create-update-modelo.action';
 import { getMarcasAction } from '@/admin/actions/get-marcas.action';
 import type { ModeloItem } from '@/admin/interfaces/modelo.interface';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateMarcaModal } from './QuickCreateMarcaModal';
 
 interface QuickCreateModeloModalProps {
@@ -110,19 +111,18 @@ export const QuickCreateModeloModal: React.FC<QuickCreateModeloModalProps> = ({
                   Nueva Marca
                 </button>
               </div>
-              <select
-                required
+              <SearchableSelect
+                options={marcas.map((m) => ({
+                  value: m.id_marca,
+                  label: m.nombre,
+                  searchTerms: m.nombre,
+                }))}
                 value={idMarca}
-                onChange={(e) => setIdMarca(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              >
-                <option value="">-- Seleccionar Marca --</option>
-                {marcas.map((m) => (
-                  <option key={m.id_marca} value={m.id_marca}>
-                    {m.nombre}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setIdMarca(val ? Number(val) : '')}
+                placeholder="-- Seleccionar Marca --"
+                searchPlaceholder="Buscar marca..."
+                required
+              />
             </div>
 
             <div className="space-y-1">

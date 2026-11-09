@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { createUpdateServicioTallerAction } from '@/admin/actions/create-update-servicio-taller.action';
 import { getTiposServiciosTallerAction } from '@/admin/actions/get-tipos-servicios-taller.action';
 import type { ServicioTallerItem } from '@/admin/interfaces/servicio-taller.interface';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateTipoServicioModal } from './QuickCreateTipoServicioModal';
 
 interface QuickCreateServicioTallerModalProps {
@@ -145,19 +146,19 @@ export const QuickCreateServicioTallerModal: React.FC<QuickCreateServicioTallerM
                   Nuevo Tipo
                 </button>
               </div>
-              <select
-                required
+              <SearchableSelect
+                options={tiposServicios.map((t) => ({
+                  value: t.id_tipo_servicio_taller,
+                  label: t.nombre,
+                  sublabel: t.descripcion || undefined,
+                  searchTerms: `${t.nombre} ${t.descripcion || ''}`,
+                }))}
                 value={idTipoServicio}
-                onChange={(e) => setIdTipoServicio(e.target.value ? Number(e.target.value) : '')}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              >
-                <option value="">-- Seleccionar Tipo de Servicio --</option>
-                {tiposServicios.map((t) => (
-                  <option key={t.id_tipo_servicio_taller} value={t.id_tipo_servicio_taller}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setIdTipoServicio(val ? Number(val) : '')}
+                placeholder="-- Seleccionar Tipo de Servicio --"
+                searchPlaceholder="Buscar tipo de servicio..."
+                required
+              />
             </div>
 
             <div className="space-y-1">

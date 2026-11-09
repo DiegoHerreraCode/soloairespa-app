@@ -2,12 +2,19 @@ import { apiClient } from '@/api/apiClient';
 import type { ApiResponse } from '../interfaces/api-response.interface';
 import type { ProveedorItem } from '../interfaces/proveedor.interface';
 
+export interface ProveedorItemPayload {
+  id_inventario: number;
+  codigo_proveedor: string;
+  ultimo_monto_compra?: number | string;
+}
+
 export interface CreateUpdateProveedorPayload {
   nombre?: string;
   rut?: string;
   correo?: string;
   num_tlf?: string;
   direccion?: string;
+  items?: ProveedorItemPayload[];
 }
 
 export const createUpdateProveedorAction = async (
