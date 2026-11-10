@@ -79,7 +79,7 @@ export const QuickCreateModeloModal: React.FC<QuickCreateModeloModalProps> = ({
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-        <div className="bg-card border border-border/90 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="bg-card border border-border/90 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
           {/* Cabecera */}
           <div className="flex items-center justify-between border-b border-border/60 pb-3">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">

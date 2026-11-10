@@ -554,7 +554,7 @@ export const CotizacionPage = () => {
       {/* MODAL: Anular Cotización */}
       {cotizacionParaAnular && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border/80 shadow-xl p-5 space-y-4">
+          <div className="bg-card w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-border/80 shadow-xl p-5 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-border/60">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Ban className="w-5 h-5 text-rose-500" />

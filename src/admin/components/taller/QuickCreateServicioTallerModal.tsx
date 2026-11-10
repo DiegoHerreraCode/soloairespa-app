@@ -105,7 +105,7 @@ export const QuickCreateServicioTallerModal: React.FC<QuickCreateServicioTallerM
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fadeIn">
-        <div className="relative bg-card border border-border/90 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 overflow-hidden">
+        <div className="relative bg-card border border-border/90 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4">
           {mutation.isPending && (
             <div className="absolute inset-0 bg-background/70 backdrop-blur-xs z-20 flex flex-col items-center justify-center gap-2.5 animate-fadeIn">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />

@@ -418,7 +418,7 @@ export const PagoClientePage = () => {
       {/* 5. POP-UP MODAL: Ingrese el motivo de anulación */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4">
+          <div className="bg-card w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-border shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-border/80">
               <div className="flex items-center gap-2 text-rose-500 font-bold text-base">
                 <AlertTriangle className="w-5 h-5" />
