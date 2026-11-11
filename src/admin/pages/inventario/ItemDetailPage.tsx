@@ -19,6 +19,7 @@ import {
   DollarSign,
   AlertCircle,
   ShieldCheck,
+  Wrench,
 } from 'lucide-react';
 import { getInventarioByIdAction } from '../../actions/get-inventario-by-id.action';
 import { getRepuestosAction } from '../../actions/get-repuestos.action';
@@ -369,44 +370,195 @@ export const ItemDetailPage = () => {
           </div>
         </div>
 
-        {/* Parámetros Económicos */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-border/60">
-          <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground block flex items-center gap-1">
-              <Percent className="w-3.5 h-3.5 text-blue-500" /> IVA
-            </span>
-            <span className="font-semibold text-foreground text-sm">
-              {itemData.porcentaje_iva ?? 19}%
-            </span>
-          </div>
+        {/* Parámetros y Cantidades Económicas */}
+        {(() => {
+          const tipo = itemData.tipo;
+          const condicion = (itemData.condicion || '').toLowerCase().trim();
 
-          <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground block flex items-center gap-1">
-              <Percent className="w-3.5 h-3.5 text-emerald-500" /> Margen Ganancia
-            </span>
-            <span className="font-semibold text-foreground text-sm">
-              {itemData.porcentaje_ganancia ?? 30}%
-            </span>
-          </div>
+          // Reglas:
+          // 1. Para insumos: todos los campos económicos excepto los de reparación.
+          // 2. Para equipos: solo los campos económicos de compra.
+          // 3. Para compresores y válvulas con condición "nuevo": todos los campos económicos excepto los de reparación.
+          // 4. Para compresores y válvulas con condición "usado": todos los campos económicos.
+          const showCompras = true; // Aplica para los 4 casos
+          const showVentas = tipo !== 'equipo'; // Aplica para insumos, compresores y válvulas (nuevo y usado)
+          const showReparaciones = (tipo === 'compresor' || tipo === 'valvula') && condicion === 'usado';
 
-          <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground block flex items-center gap-1">
-              <DollarSign className="w-3.5 h-3.5 text-muted-foreground" /> Último Costo Compra
-            </span>
-            <span className="font-mono font-bold text-foreground text-sm">
-              ${Number(itemData.ultimo_monto_compra || 0).toLocaleString('es-CL')}
-            </span>
-          </div>
+          return (
+            <div className="space-y-4 pt-4 border-t border-border/60">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                Cantidades y Parámetros Económicos
+              </span>
 
-          <div className="space-y-0.5">
-            <span className="text-xs text-muted-foreground block flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Precio Venta Sugerido
-            </span>
-            <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">
-              ${Number(itemData.monto_venta_unitario || 0).toLocaleString('es-CL')}
-            </span>
-          </div>
-        </div>
+              {/* Parámetros Generales: IVA y Margen de Ganancia (si aplica venta) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-accent/30 border border-border/60">
+                <div className="space-y-0.5">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Percent className="w-3.5 h-3.5 text-blue-500" /> IVA
+                  </span>
+                  <span className="font-semibold text-foreground text-sm">
+                    {itemData.porcentaje_iva ?? 19}%
+                  </span>
+                </div>
+
+                {showVentas && (
+                  <>
+                    <div className="space-y-0.5">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Percent className="w-3.5 h-3.5 text-emerald-500" /> Margen Ganancia
+                      </span>
+                      <span className="font-semibold text-foreground text-sm">
+                        {itemData.porcentaje_ganancia ?? 30}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Precio Venta Sugerido
+                      </span>
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">
+                        ${Number(itemData.monto_venta_unitario || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-0.5">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-muted-foreground" /> Último Costo Compra
+                  </span>
+                  <span className="font-mono font-bold text-foreground text-sm">
+                    ${Number(itemData.ultimo_monto_compra || 0).toLocaleString('es-CL')}
+                  </span>
+                </div>
+              </div>
+
+              {/* 1. Métricas de Compra */}
+              {showCompras && (
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
+                    Métricas de Compra
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Compra Mínima
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_compra_min || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Compra Promedio
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_compra_prom || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Compra Máxima
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_compra_max || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 block">
+                        Última Compra
+                      </span>
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm">
+                        ${Number(itemData.ultimo_monto_compra || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Métricas de Venta */}
+              {showVentas && (
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                    Métricas de Venta
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Venta Mínima
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_venta_min || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Venta Promedio
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_venta_prom || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Venta Máxima
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_venta_max || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">
+                        Venta Sugerida
+                      </span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                        ${Number(itemData.monto_venta_unitario || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Métricas de Reparación */}
+              {showReparaciones && (
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Wrench className="w-3.5 h-3.5 text-amber-500" />
+                    Métricas de Reparación
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Reparación Mínima
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_reparacion_min || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">
+                        Reparación Promedio
+                      </span>
+                      <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm">
+                        ${Number(itemData.monto_reparacion_prom || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-accent/40 rounded-xl space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Reparación Máxima
+                      </span>
+                      <span className="font-mono font-bold text-foreground text-sm">
+                        ${Number(itemData.monto_reparacion_max || 0).toLocaleString('es-CL')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* 3. Tabla de Proveedores que suministran este ítem y su último monto de compra */}

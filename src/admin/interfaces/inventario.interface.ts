@@ -13,9 +13,16 @@ export interface InventarioItem {
   stock_minimo: number;
   porcentaje_iva?: number | string;
   porcentaje_ganancia?: number | string;
+  monto_compra_min?: number | string;
   monto_compra_prom?: number | string;
-  ultimo_monto_compra?: number | string;
+  monto_compra_max?: number | string;
+  monto_venta_min?: number | string;
+  monto_venta_prom?: number | string;
+  monto_venta_max?: number | string;
+  monto_reparacion_min?: number | string;
   monto_reparacion_prom?: number | string;
+  monto_reparacion_max?: number | string;
+  ultimo_monto_compra?: number | string;
   monto_venta_unitario?: number | string;
   created_at?: string;
   updated_at?: string;
