@@ -9,10 +9,10 @@ export const OrdenTypeSelectorPage = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
             <FileText className="w-7 h-7 text-blue-500" />
-            Crear Orden de Trabajo
+            Crear Orden
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Seleccione el tipo de orden de trabajo que desea crear.
+            Seleccione el tipo de orden que desea crear.
           </p>
         </div>
 
@@ -42,7 +42,7 @@ export const OrdenTypeSelectorPage = () => {
           {/* Texto del Card */}
           <div className="text-center my-4">
             <h2 className="text-lg font-bold text-foreground group-hover:text-blue-500 transition-colors">
-              Crear Orden de Trabajo de Venta
+              Crear Orden de Venta
             </h2>
           </div>
 
@@ -67,7 +67,7 @@ export const OrdenTypeSelectorPage = () => {
           {/* Texto del Card */}
           <div className="text-center my-4">
             <h2 className="text-lg font-bold text-foreground group-hover:text-blue-500 transition-colors">
-              Crear Orden de Trabajo de Reparación
+              Crear Orden de Reparación
             </h2>
           </div>
 
@@ -92,7 +92,7 @@ export const OrdenTypeSelectorPage = () => {
           {/* Texto del Card */}
           <div className="text-center my-4">
             <h2 className="text-lg font-bold text-foreground group-hover:text-blue-500 transition-colors">
-              Crear Orden de Trabajo de Recambio
+              Crear Orden de Recambio
             </h2>
           </div>
 

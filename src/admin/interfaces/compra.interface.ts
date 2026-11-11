@@ -5,6 +5,7 @@ import type { PagoCompraItem } from './pago-compra.interface';
 export interface DetalleCompraSerial {
   serial?: string;
   service_tag?: string;
+  estado?: 'nuevo' | 'pendiente_reparacion' | 'reparado' | string;
 }
 
 export interface DetalleCompraItem {

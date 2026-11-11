@@ -295,6 +295,8 @@ export const CompraFormPage = () => {
     const initialQty = 1;
     const isSerialized = item.tipo !== 'insumo';
     const needsServiceTag = ['compresor', 'valvula'].includes(item.tipo);
+    const esUsado = item.condicion?.toLowerCase() === 'usado';
+    const defaultEstado = esUsado ? 'pendiente_reparacion' : 'nuevo';
     const codigoProveedorAsociado =
       overrideCodigoProveedor !== undefined
         ? overrideCodigoProveedor
@@ -307,11 +309,11 @@ export const CompraFormPage = () => {
       ? Array.from({ length: initialQty }, () => {
         if (needsServiceTag) {
           const tag = generarServiceTagUnico(item.tipo, currentTags);
-          return { serial: tag, service_tag: tag };
+          return { serial: tag, service_tag: tag, estado: defaultEstado };
         }
         // Equipos: no tienen service_tag, se genera un serial autogenerado único por defecto
         const tag = generarServiceTagUnico(item.tipo, currentTags);
-        return { serial: tag, service_tag: '' };
+        return { serial: tag, service_tag: '', estado: defaultEstado };
       })
       : [];
 
@@ -373,12 +375,15 @@ export const CompraFormPage = () => {
           if (qty > updatedSeriales.length) {
             const diff = qty - updatedSeriales.length;
             const needsServiceTag = ['compresor', 'valvula'].includes(item.inventario.tipo);
+            const esUsado = item.inventario.condicion?.toLowerCase() === 'usado';
+            const defaultEstado = esUsado ? 'pendiente_reparacion' : 'nuevo';
             const currentTags = getCombinedServiceTagsSet();
             const extras: DetalleCompraSerial[] = Array.from({ length: diff }, () => {
               const tag = generarServiceTagUnico(item.inventario.tipo, currentTags);
               return {
                 serial: tag,
                 service_tag: needsServiceTag ? tag : '',
+                estado: defaultEstado,
               };
             });
             updatedSeriales = [...updatedSeriales, ...extras];
@@ -410,11 +415,11 @@ export const CompraFormPage = () => {
     );
   };
 
-  // Cambiar serial o service_tag en items serializados
+  // Cambiar serial, service_tag o estado en items serializados
   const handleSerialChange = (
     id_inventario: number,
     index: number,
-    field: 'serial' | 'service_tag',
+    field: 'serial' | 'service_tag' | 'estado',
     value: string
   ) => {
     setCartItems((prev) =>
@@ -560,7 +565,11 @@ export const CompraFormPage = () => {
           porcentaje_iva: Number(c.porcentaje_iva),
           monto_iva: montoIva,
           monto_total_linea_con_iva: totalLinea,
-          seriales: c.inventario.tipo !== 'insumo' ? c.seriales : undefined,
+          seriales: c.inventario.tipo !== 'insumo' ? c.seriales.map((s) => ({
+            serial: s.serial,
+            service_tag: s.service_tag,
+            estado: s.estado || (c.inventario.condicion?.toLowerCase() === 'usado' ? 'pendiente_reparacion' : 'nuevo'),
+          })) : undefined,
         };
       }),
       pagos: pagosPlan.map((p) => ({
@@ -684,6 +693,7 @@ export const CompraFormPage = () => {
                 <tr className="border-b border-border/80 text-muted-foreground">
                   <th className="py-2.5 px-3 text-center">id_detalle_compra</th>
                   <th className="py-2.5 px-3 text-center">Ítem / Repuesto</th>
+                  <th className="py-2.5 px-3 text-center">Condición</th>
                   <th className="py-2.5 px-3 text-center">Cód. Proveedor</th>
                   <th className="py-2.5 px-3 text-center">Cantidad</th>
                   <th className="py-2.5 px-3 text-center">Costo Unitario</th>
@@ -703,6 +713,17 @@ export const CompraFormPage = () => {
                       <td className="py-3 px-3 text-center">
                         <div className="font-bold text-foreground">{itemInv?.nombre || `Ítem #${det.id_inventario}`}</div>
                         <div className="text-[11px] text-muted-foreground font-mono">SKU: {itemInv?.sku || 'N/A'}</div>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                            itemInv?.condicion?.toLowerCase() === 'usado'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          }`}
+                        >
+                          {itemInv?.condicion || 'Nuevo'}
+                        </span>
                       </td>
                       <td className="py-3 px-3 text-center font-mono font-bold text-blue-600 dark:text-blue-400">
                         {det.codigo_proveedor || '-'}
@@ -1099,10 +1120,19 @@ export const CompraFormPage = () => {
                       {/* Fila principal del item */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                          <div className="font-bold text-sm text-foreground flex items-center gap-2">
+                          <div className="font-bold text-sm text-foreground flex items-center gap-2 flex-wrap">
                             <span>{item.inventario.nombre}</span>
                             <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border/60">
                               {item.inventario.tipo}
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                                item.inventario.condicion?.toLowerCase() === 'usado'
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                              }`}
+                            >
+                              {item.inventario.condicion || 'Nuevo'}
                             </span>
                           </div>
                           <div className="text-xs text-muted-foreground font-mono">
@@ -1270,6 +1300,24 @@ export const CompraFormPage = () => {
                                       required
                                       className="w-full px-2 py-1 text-xs rounded bg-background border border-border/70 text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
+                                  </div>
+                                )}
+
+                                {item.inventario.condicion?.toLowerCase() === 'usado' && (
+                                  <div className="space-y-0.5">
+                                    <label className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 block">
+                                      Estado del Repuesto *
+                                    </label>
+                                    <select
+                                      value={item.seriales[sIdx]?.estado || 'pendiente_reparacion'}
+                                      onChange={(e) =>
+                                        handleSerialChange(item.id_inventario, sIdx, 'estado', e.target.value)
+                                      }
+                                      className="w-full px-2 py-1 text-xs rounded bg-background border border-border/70 text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    >
+                                      <option value="pendiente_reparacion">Pendiente de Reparación</option>
+                                      <option value="reparado">Reparado</option>
+                                    </select>
                                   </div>
                                 )}
                               </div>
