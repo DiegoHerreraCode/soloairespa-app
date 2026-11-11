@@ -7,7 +7,6 @@ import {
   Plus,
   X,
   Loader2,
-  AlertTriangle,
   Copy,
 } from 'lucide-react';
 
@@ -28,17 +27,15 @@ import type { TipoOrdenItem } from '@/admin/interfaces/tipo-orden.interface';
 import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
 import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
 
-// Cada bloque/línea de recambio según el boceto:
-// Fila superior: id_inventario_repuesto_saliente | precio_unitario | porcentaje_iva (read only) | id_repuesto_saliente
-// Fila inferior: id_inventario_repuesto_entrante | monto_tasacion | serial_entrante | service_tag
+// Cada bloque/línea de recambio:
+// El ítem que sale y entra es el mismo (mismo id_inventario).
+// El sistema selecciona automáticamente la pieza física 'reparado' de la bodega (FIFO por id_repuesto).
 export interface LineaRecambioItem {
   id: string; // id temporal único
-  id_inventario_repuesto_saliente: number | '';
-  id_repuesto_saliente: number | '';
+  id_inventario: number | '';
   precio_unitario: number | '';
   monto_tasacion: number | '';
   porcentaje_iva: number;
-  id_inventario_repuesto_entrante: number | '';
   serial_entrante: string;
   service_tag: string;
 }
@@ -75,11 +72,11 @@ export const OrdenRecambioFormPage: React.FC = () => {
   const [idCliente, setIdCliente] = useState<number | ''>('');
   const [isQuickClienteOpen, setIsQuickClienteOpen] = useState(false);
 
-  // Catálogo permitido para recambio: solo 'compresor' o 'valvula'
+  // Catálogo permitido para recambio: solo 'compresor' o 'valvula' en condicion 'usado'
   const inventarioPermitido = useMemo(() => {
     return inventario.filter((item) => {
       const t = item.tipo;
-      return t === 'compresor' || t === 'valvula';
+      return (t === 'compresor' || t === 'valvula') && item.condicion === 'usado';
     });
   }, [inventario]);
 
@@ -88,12 +85,16 @@ export const OrdenRecambioFormPage: React.FC = () => {
     return new Map<number, InventarioItem>(inventarioPermitido.map((i) => [i.id_inventario, i]));
   }, [inventarioPermitido]);
 
-  // Repuestos disponibles en taller por id_inventario:
-  // Regla: propietario === true && id_orden_salida === null/undefined
-  const repuestosDisponiblesPorInventario = useMemo(() => {
+  // Repuestos reparados disponibles en taller para recambio por id_inventario:
+  // Criterio solicitado: propietario === true, id_orden_salida === null, estado === 'reparado'
+  const repuestosReparadosPorInventario = useMemo(() => {
     const map = new Map<number, RepuestoItem[]>();
     for (const r of repuestos) {
-      if (r.propietario === true && (r.id_orden_salida === null || r.id_orden_salida === undefined)) {
+      if (
+        r.propietario === true &&
+        (r.id_orden_salida === null || r.id_orden_salida === undefined) &&
+        r.estado === 'reparado'
+      ) {
         const list = map.get(r.id_inventario) || [];
         list.push(r);
         map.set(r.id_inventario, list);
@@ -101,6 +102,11 @@ export const OrdenRecambioFormPage: React.FC = () => {
     }
     return map;
   }, [repuestos]);
+
+  // Función para obtener stock disponible para recambio (unidades reparadas en bodega)
+  const getStockDisponibleRecambio = (idInv: number): number => {
+    return (repuestosReparadosPorInventario.get(idInv) || []).length;
+  };
 
   // Conjunto de service_tags existentes en base de datos
   const existingServiceTagsSet = useMemo(() => {
@@ -129,12 +135,10 @@ export const OrdenRecambioFormPage: React.FC = () => {
     return [
       {
         id: crypto.randomUUID(),
-        id_inventario_repuesto_saliente: '',
-        id_repuesto_saliente: '',
+        id_inventario: '',
         precio_unitario: '',
         monto_tasacion: '',
         porcentaje_iva: 19,
-        id_inventario_repuesto_entrante: '',
         serial_entrante: defaultTag,
         service_tag: defaultTag,
       },
@@ -147,17 +151,6 @@ export const OrdenRecambioFormPage: React.FC = () => {
     return tipo ? tipo.id_tipo_orden : 3;
   }, [tiposOrdenes]);
 
-  // Conjunto de IDs de repuestos físicos seleccionados actualmente para evitar duplicados
-  const repuestosSalientesSeleccionados = useMemo(() => {
-    const set = new Set<number>();
-    lineasRecambio.forEach((l) => {
-      if (l.id_repuesto_saliente) {
-        set.add(Number(l.id_repuesto_saliente));
-      }
-    });
-    return set;
-  }, [lineasRecambio]);
-
   // Agregar una nueva línea de recambio (+)
   const handleAgregarLinea = () => {
     const currentTags = getCombinedServiceTagsSet();
@@ -166,12 +159,10 @@ export const OrdenRecambioFormPage: React.FC = () => {
       ...prev,
       {
         id: crypto.randomUUID(),
-        id_inventario_repuesto_saliente: '',
-        id_repuesto_saliente: '',
+        id_inventario: '',
         precio_unitario: '',
         monto_tasacion: '',
         porcentaje_iva: 19,
-        id_inventario_repuesto_entrante: '',
         serial_entrante: defaultTag,
         service_tag: defaultTag,
       },
@@ -215,14 +206,12 @@ export const OrdenRecambioFormPage: React.FC = () => {
       const actual = [...prev];
       const linea = { ...actual[index] };
 
-      if (campo === 'id_inventario_repuesto_saliente') {
-        const idSaliente = valor ? Number(valor) : '';
-        linea.id_inventario_repuesto_saliente = idSaliente;
-        // Al cambiar de ítem saliente, se resetea la pieza física seleccionada
-        linea.id_repuesto_saliente = '';
+      if (campo === 'id_inventario') {
+        const idInv = valor ? Number(valor) : '';
+        linea.id_inventario = idInv;
 
-        if (idSaliente) {
-          const itemInv = inventarioMap.get(idSaliente);
+        if (idInv) {
+          const itemInv = inventarioMap.get(idInv);
           linea.porcentaje_iva =
             itemInv?.porcentaje_iva !== undefined && itemInv.porcentaje_iva !== null
               ? Number(itemInv.porcentaje_iva)
@@ -233,10 +222,6 @@ export const OrdenRecambioFormPage: React.FC = () => {
             linea.precio_unitario = Number(itemInv.monto_venta_unitario);
           }
         }
-      } else if (campo === 'id_repuesto_saliente') {
-        linea.id_repuesto_saliente = valor ? Number(valor) : '';
-      } else if (campo === 'id_inventario_repuesto_entrante') {
-        linea.id_inventario_repuesto_entrante = valor ? Number(valor) : '';
       } else if (campo === 'precio_unitario' || campo === 'monto_tasacion') {
         linea[campo] = valor === '' ? '' : Math.max(0, Number(valor));
       } else {
@@ -315,29 +300,32 @@ export const OrdenRecambioFormPage: React.FC = () => {
     }
 
     // 1. Validar que cada línea tenga todos los campos requeridos
+    const conteoPorInventario = new Map<number, number>();
+
     for (let i = 0; i < lineasRecambio.length; i++) {
       const l = lineasRecambio[i];
       const numFila = i + 1;
 
-      if (!l.id_inventario_repuesto_saliente) {
-        toast.warning(`En la línea #${numFila}, debe seleccionar el repuesto saliente`);
+      if (!l.id_inventario) {
+        toast.warning(`En la línea #${numFila}, debe seleccionar el repuesto de recambio`);
         return;
       }
 
-      if (!l.id_repuesto_saliente) {
+      const idInv = Number(l.id_inventario);
+      const stockDisp = getStockDisponibleRecambio(idInv);
+      const acumulado = (conteoPorInventario.get(idInv) || 0) + 1;
+      conteoPorInventario.set(idInv, acumulado);
+
+      if (acumulado > stockDisp) {
+        const itemInv = inventarioMap.get(idInv);
         toast.warning(
-          `En la línea #${numFila}, debe seleccionar la pieza física en bodega (id_repuesto_saliente)`
+          `No hay suficiente stock reparado disponible para "${itemInv?.nombre || 'el ítem'}". Disponibles: ${stockDisp}`
         );
         return;
       }
 
       if (l.precio_unitario === '' || Number(l.precio_unitario) <= 0) {
         toast.warning(`En la línea #${numFila}, debe ingresar un precio unitario mayor a 0`);
-        return;
-      }
-
-      if (!l.id_inventario_repuesto_entrante) {
-        toast.warning(`En la línea #${numFila}, debe seleccionar el repuesto entrante`);
         return;
       }
 
@@ -366,8 +354,8 @@ export const OrdenRecambioFormPage: React.FC = () => {
       }
     }
 
-    // 2. REGLA CLAVE DEL BOCETO:
-    // "validar antes de enviar en el payload, que no pueden haber service_tag iguales"
+    // 2. REGLA CLAVE:
+    // No pueden haber service_tag iguales entre las líneas
     const serviceTags = lineasRecambio.map((l) => l.service_tag.trim().toLowerCase());
     const serviceTagsSet = new Set(serviceTags);
     if (serviceTagsSet.size !== serviceTags.length) {
@@ -375,27 +363,19 @@ export const OrdenRecambioFormPage: React.FC = () => {
       return;
     }
 
-    // 3. Validar que no haya repuestos físicos salientes repetidos
-    const repsSalientes = lineasRecambio.map((l) => Number(l.id_repuesto_saliente));
-    const repsSalientesSet = new Set(repsSalientes);
-    if (repsSalientesSet.size !== repsSalientes.length) {
-      toast.error('No puedes seleccionar la misma pieza física en bodega para más de una línea.');
-      return;
-    }
-
-    // 4. Construcción del Payload exacto
+    // 3. Construcción del Payload exacto (id_inventario_repuesto_saliente = id_inventario_repuesto_entrante)
     const payload: CreateOrdenRecambioPayload = {
       id_cliente: Number(idCliente),
       id_tipo_orden: Number(idTipoOrdenRecambio),
       detalles: lineasRecambio.map((l) => ({
-        id_inventario_repuesto_saliente: Number(l.id_inventario_repuesto_saliente),
-        id_repuesto_saliente: Number(l.id_repuesto_saliente),
+        id_inventario_repuesto_saliente: Number(l.id_inventario),
         precio_unitario: Number(l.precio_unitario),
         monto_tasacion: Number(l.monto_tasacion),
         porcentaje_iva: Number(l.porcentaje_iva),
-        id_inventario_repuesto_entrante: Number(l.id_inventario_repuesto_entrante),
+        id_inventario_repuesto_entrante: Number(l.id_inventario),
         serial_entrante: l.serial_entrante.trim(),
         service_tag: l.service_tag.trim(),
+        service_tag_entrante: l.service_tag.trim(),
       })),
     };
 
@@ -507,9 +487,9 @@ export const OrdenRecambioFormPage: React.FC = () => {
 
           <div className="space-y-4">
             {lineasRecambio.map((linea, index) => {
-              const repuestosDisponibles = linea.id_inventario_repuesto_saliente
-                ? repuestosDisponiblesPorInventario.get(Number(linea.id_inventario_repuesto_saliente)) || []
-                : [];
+              const stockDispRecambio = linea.id_inventario
+                ? getStockDisponibleRecambio(Number(linea.id_inventario))
+                : 0;
 
               const tasacionInvalida =
                 linea.monto_tasacion !== '' &&
@@ -521,38 +501,79 @@ export const OrdenRecambioFormPage: React.FC = () => {
                   key={linea.id}
                   className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs relative space-y-4"
                 >
-                  {/* Fila Superior: id_inventario_repuesto_saliente | precio_unitario | porcentaje_iva (read only) | id_repuesto_saliente */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                    {/* id_inventario_repuesto_saliente */}
-                    <div className="sm:col-span-4 space-y-1">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Repuesto Saliente (Catálogo) <span className="text-rose-500">*</span>
-                      </label>
-                      <select
-                        required
-                        value={linea.id_inventario_repuesto_saliente}
-                        onChange={(e) =>
-                          handleActualizarCampo(
-                            index,
-                            'id_inventario_repuesto_saliente',
-                            e.target.value
-                          )
-                        }
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                  <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-2">
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs">
+                        {index + 1}
+                      </span>
+                      Línea de Recambio
+                    </span>
+
+                    {lineasRecambio.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoverLinea(linea.id)}
+                        className="p-1 text-muted-foreground hover:text-rose-500 transition-colors cursor-pointer"
+                        title="Eliminar esta línea"
                       >
-                        <option value="">-- Seleccionar repuesto saliente --</option>
-                        {inventarioPermitido.map((item) => (
-                          <option key={item.id_inventario} value={item.id_inventario}>
-                            {item.nombre} ({item.tipo} - {item.condicion || 'N/A'}) - Stock: {item.cantidad_propia}
-                          </option>
-                        ))}
-                      </select>
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Fila 1: Selector Inteligente del Repuesto (Entra y Sale el mismo) + Stock disponible para recambio */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    {/* Selector SearchableSelect para id_inventario */}
+                    <div className="sm:col-span-8 space-y-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Repuesto de Recambio (Sale reparado / Entra usado del cliente){' '}
+                        <span className="text-rose-500">*</span>
+                      </label>
+                      <SearchableSelect
+                        options={inventarioPermitido.map((item) => {
+                          const disp = getStockDisponibleRecambio(item.id_inventario);
+                          return {
+                            value: item.id_inventario,
+                            label: item.nombre,
+                            sublabel: `SKU: ${item.sku || 'S/SKU'} • ${item.tipo} (${item.condicion || 'usado'}) • Disp. Recambio: ${disp}`,
+                            searchTerms: `${item.sku || ''} ${item.tipo || ''}`,
+                          };
+                        })}
+                        value={linea.id_inventario}
+                        onChange={(val) =>
+                          handleActualizarCampo(index, 'id_inventario', val)
+                        }
+                        placeholder="Buscar por nombre o SKU..."
+                        searchPlaceholder="Buscar compresor o válvula usada..."
+                        required
+                      />
                     </div>
 
-                    {/* precio_unitario */}
-                    <div className="sm:col-span-2 space-y-1">
+                    {/* Stock disponible para recambio */}
+                    <div className="sm:col-span-4 space-y-1">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Precio Unitario <span className="text-rose-500">*</span>
+                        Stock Disponible para Recambio
+                      </label>
+                      <div className="px-3 py-2 rounded-xl bg-accent/40 border border-border/80 text-xs font-mono font-bold flex items-center justify-between">
+                        <span className="text-muted-foreground">Unidades reparadas:</span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs ${stockDispRecambio > 0
+                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            }`}
+                        >
+                          {stockDispRecambio}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Condiciones Comerciales: Precio Unitario, Monto Tasación, % IVA */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    {/* precio_unitario */}
+                    <div className="sm:col-span-5 space-y-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Precio Unitario (Venta de la pieza) <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">
@@ -573,101 +594,10 @@ export const OrdenRecambioFormPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* porcentaje_iva (read only según boceto) */}
-                    <div className="sm:col-span-2 space-y-1">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        % IVA (read only)
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={`${Number(linea.porcentaje_iva).toFixed(1)}%`}
-                        className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-xl bg-muted/50 border border-border/60 text-muted-foreground font-mono cursor-not-allowed text-center select-none"
-                      />
-                    </div>
-
-                    {/* id_repuesto_saliente (pieza física en bodega) */}
-                    <div className="sm:col-span-4 space-y-1">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Repuesto Físico en Bodega (Saliente) <span className="text-rose-500">*</span>
-                      </label>
-                      {!linea.id_inventario_repuesto_saliente ? (
-                        <div className="px-3 py-2 text-xs rounded-xl bg-muted/40 text-muted-foreground border border-border/60">
-                          Selecciona el ítem saliente primero
-                        </div>
-                      ) : repuestosDisponibles.length === 0 ? (
-                        <div className="px-3 py-1.5 text-xs rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                          <span>Sin piezas físicas disponibles en bodega</span>
-                        </div>
-                      ) : (
-                        <select
-                          required
-                          value={linea.id_repuesto_saliente}
-                          onChange={(e) =>
-                            handleActualizarCampo(
-                              index,
-                              'id_repuesto_saliente',
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
-                        >
-                          <option value="">-- Seleccionar pieza física --</option>
-                          {repuestosDisponibles.map((r) => {
-                            const asignadoEnOtro =
-                              repuestosSalientesSeleccionados.has(r.id_repuesto) &&
-                              linea.id_repuesto_saliente !== r.id_repuesto;
-
-                            return (
-                              <option
-                                key={r.id_repuesto}
-                                value={r.id_repuesto}
-                                disabled={asignadoEnOtro}
-                              >
-                                ID #{r.id_repuesto} | {r.estado} | Serial: {r.serial || 'Sin serial'} | Tag:{' '}
-                                {r.service_tag || 'Sin tag'}{' '}
-                                {asignadoEnOtro ? '(Seleccionado)' : ''}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Fila Inferior: id_inventario_repuesto_entrante | monto_tasacion | serial_entrante | service_tag | Botón Eliminar (X) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-1">
-                    {/* id_inventario_repuesto_entrante */}
-                    <div className="sm:col-span-4 space-y-1">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Repuesto Entrante (Cliente Averiado) <span className="text-rose-500">*</span>
-                      </label>
-                      <select
-                        required
-                        value={linea.id_inventario_repuesto_entrante}
-                        onChange={(e) =>
-                          handleActualizarCampo(
-                            index,
-                            'id_inventario_repuesto_entrante',
-                            e.target.value
-                          )
-                        }
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                      >
-                        <option value="">-- Seleccionar repuesto entrante --</option>
-                        {inventarioPermitido.map((item) => (
-                          <option key={item.id_inventario} value={item.id_inventario}>
-                            {item.nombre} ({item.tipo} - {item.condicion || 'usado'})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
                     {/* monto_tasacion */}
-                    <div className="sm:col-span-2 space-y-1">
+                    <div className="sm:col-span-4 space-y-1">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Monto Tasación <span className="text-rose-500">*</span>
+                        Monto Tasación (Valor de la pieza averiada) <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">
@@ -691,10 +621,26 @@ export const OrdenRecambioFormPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* serial_entrante */}
-                    <div className="sm:col-span-2 space-y-1">
+                    {/* porcentaje_iva (read only) */}
+                    <div className="sm:col-span-3 space-y-1">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Serial Entrante <span className="text-rose-500">*</span>
+                        % IVA (read only)
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${Number(linea.porcentaje_iva).toFixed(1)}%`}
+                        className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-xl bg-muted/50 border border-border/60 text-muted-foreground font-mono cursor-not-allowed text-center select-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fila 3: Identificadores de la pieza que ingresa del cliente */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    {/* serial_entrante */}
+                    <div className="sm:col-span-6 space-y-1">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Serial Pieza Entrante (Cliente) <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -709,7 +655,7 @@ export const OrdenRecambioFormPage: React.FC = () => {
                     </div>
 
                     {/* service_tag */}
-                    <div className="sm:col-span-3 space-y-1">
+                    <div className="sm:col-span-6 space-y-1">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         Service Tag (Único) <span className="text-rose-500">*</span>
                       </label>
@@ -723,20 +669,6 @@ export const OrdenRecambioFormPage: React.FC = () => {
                         }
                         className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                       />
-                    </div>
-
-                    {/* Botón Eliminar fila (X) */}
-                    <div className="sm:col-span-1 flex justify-center pb-0.5">
-                      {lineasRecambio.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoverLinea(linea.id)}
-                          className="p-2 rounded-xl bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border border-rose-500/20 transition-all cursor-pointer"
-                          title="Eliminar esta línea de recambio"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   </div>
 

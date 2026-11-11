@@ -35,16 +35,17 @@ export interface CreateOrdenVentaPayload {
   detalles: CreateOrdenVentaDetallePayload[];
 }
 
-// Detalle para recambio
+// Detalle para recambio (id_repuesto_saliente ahora es opcional ya que el sistema lo asigna automáticamente)
 export interface CreateOrdenRecambioDetallePayload {
   id_inventario_repuesto_saliente: number;
-  id_repuesto_saliente: number;
+  id_repuesto_saliente?: number;
   precio_unitario: number;
   monto_tasacion: number;
   porcentaje_iva: number;
   id_inventario_repuesto_entrante: number;
   serial_entrante: string;
   service_tag: string;
+  service_tag_entrante?: string;
 }
 
 export interface CreateOrdenRecambioPayload {
