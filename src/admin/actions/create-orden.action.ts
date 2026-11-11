@@ -16,11 +16,13 @@ export interface CreateOrdenRepuestoSalienteItem {
   precio_unitario: number;
 }
 
-// Detalle para repuesto serializado en venta
+// Detalle para repuesto serializado en venta (ahora solo requiere cantidad y precio_unitario, o repuestos_salientes opcional)
 export interface CreateOrdenVentaDetalleRepuestoPayload {
   id_inventario_repuesto_saliente: number;
+  cantidad: number;
+  precio_unitario: number;
   porcentaje_iva: number;
-  repuestos_salientes: CreateOrdenRepuestoSalienteItem[];
+  repuestos_salientes?: CreateOrdenRepuestoSalienteItem[];
 }
 
 export type CreateOrdenVentaDetallePayload =

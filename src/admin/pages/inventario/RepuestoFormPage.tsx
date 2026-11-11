@@ -208,7 +208,7 @@ export const RepuestoFormPage = () => {
           Costos y Valores Económicos
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           <div className="p-3 bg-accent/40 rounded-xl">
             <span className="text-[11px] text-muted-foreground block">Costo Adquisición</span>
             <span className="text-sm font-bold text-foreground">
@@ -234,28 +234,6 @@ export const RepuestoFormPage = () => {
             <span className="text-[11px] text-muted-foreground block">Reparación con Ganancia</span>
             <span className="text-sm font-bold text-foreground">
               ${Number(repuesto.costo_reparacion_con_ganancia || 0).toLocaleString('es-CL')}
-            </span>
-          </div>
-
-          <div className="p-3 bg-accent/40 rounded-xl">
-            <span className="text-[11px] text-muted-foreground block">Venta Real</span>
-            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-              ${Number(repuesto.monto_venta_real || 0).toLocaleString('es-CL')}
-            </span>
-          </div>
-
-          <div className="p-3 bg-accent/40 rounded-xl">
-            <span className="text-[11px] text-muted-foreground block">Utilidad</span>
-            <span
-              className={`text-sm font-bold ${
-                Number(repuesto.utilidad || 0) > 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : Number(repuesto.utilidad || 0) === 0
-                    ? 'text-foreground'
-                    : 'text-rose-500'
-              }`}
-            >
-              ${Number(repuesto.utilidad || 0).toLocaleString('es-CL')}
             </span>
           </div>
         </div>

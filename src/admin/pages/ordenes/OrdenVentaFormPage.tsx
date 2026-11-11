@@ -8,8 +8,6 @@ import {
   Plus,
   XCircle,
   Loader2,
-  Info,
-  AlertTriangle,
 } from 'lucide-react';
 
 import { getClientesAction } from '@/admin/actions/get-clientes.action';
@@ -32,27 +30,17 @@ import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
 export interface LineaVentaFila {
   id_inventario: number;
   tipo: 'compresor' | 'valvula' | 'insumo';
+  condicion: string;
   sku: string;
   nombre: string;
   cantidad: number;
+  stock_disponible: number;
   costo_unitario: number;
-  monto_total_linea: number;
   porcentaje_ganancia: number;
   costo_unitario_con_ganancia: number;
   monto_total_linea_con_ganancia: number;
   porcentaje_iva: number;
   monto_iva: number;
-}
-
-// Representa una unidad física individual para asignación en bodega
-export interface UnidadFisicaVenta {
-  unitKey: string; // `${id_inventario}_${subIndex}`
-  id_inventario: number;
-  subIndex: number; // 1 de 2, etc.
-  cantidadTotal: number;
-  nombre: string;
-  sku: string;
-  precioUnitarioConGanancia: number;
 }
 
 export const OrdenVentaFormPage: React.FC = () => {
@@ -93,9 +81,6 @@ export const OrdenVentaFormPage: React.FC = () => {
   // Búsqueda en sidebar por SKU o nombre
   const [busquedaSku, setBusquedaSku] = useState('');
 
-  // Asignaciones de stock físico: { [unitKey]: id_repuesto }
-  const [stockFisicoAsignado, setStockFisicoAsignado] = useState<Record<string, number>>({});
-
   // Catálogo permitido para venta: solo compresor, valvula o insumo
   const inventarioPermitido = useMemo(() => {
     return inventario.filter((item) => {
@@ -109,19 +94,32 @@ export const OrdenVentaFormPage: React.FC = () => {
     return new Map<number, InventarioItem>(inventarioPermitido.map((i) => [i.id_inventario, i]));
   }, [inventarioPermitido]);
 
-  // Repuestos disponibles en taller por id_inventario:
-  // Regla: propietario === true && id_orden_salida === null/undefined
-  const repuestosDisponiblesPorInventario = useMemo(() => {
-    const map = new Map<number, RepuestoItem[]>();
-    for (const r of repuestos) {
-      if (r.propietario === true && (r.id_orden_salida === null || r.id_orden_salida === undefined)) {
-        const list = map.get(r.id_inventario) || [];
-        list.push(r);
-        map.set(r.id_inventario, list);
-      }
+  // Stock disponible para venta por ítem de inventario:
+  // - Para compresor / valvula: contar repuestos físicos con propietario = true, id_orden_salida = null,
+  //   y estado 'nuevo' o 'reparado' (excluyendo 'pendiente_reparacion'). Si el ítem tiene condición definida:
+  //   si es 'nuevo', estado 'nuevo'; si es 'usado', estado 'reparado'.
+  // - Para insumo: cantidad_propia registrada en inventario.
+  const getStockDisponibleParaVenta = (itemInv: InventarioItem): number => {
+    if (itemInv.tipo === 'insumo') {
+      return Math.max(0, Number(itemInv.cantidad_propia) || 0);
     }
-    return map;
-  }, [repuestos]);
+
+    const condicion = (itemInv.condicion || '').toLowerCase().trim();
+    const repuestosItem = repuestos.filter(
+      (r) =>
+        r.id_inventario === itemInv.id_inventario &&
+        r.propietario === true &&
+        (r.id_orden_salida === null || r.id_orden_salida === undefined)
+    );
+
+    if (condicion === 'nuevo') {
+      return repuestosItem.filter((r) => r.estado === 'nuevo').length;
+    } else if (condicion === 'usado') {
+      return repuestosItem.filter((r) => r.estado === 'reparado').length;
+    } else {
+      return repuestosItem.filter((r) => r.estado === 'nuevo' || r.estado === 'reparado').length;
+    }
+  };
 
   // Ítems filtrados en el sidebar según la búsqueda
   const itemsFiltradosSidebar = useMemo(() => {
@@ -217,14 +215,22 @@ export const OrdenVentaFormPage: React.FC = () => {
 
     const cantidadInicial = 1;
     const calculos = calcularValoresLinea(itemInv, cantidadInicial);
+    const stockDisp = getStockDisponibleParaVenta(itemInv);
 
     const nuevaLinea: LineaVentaFila = {
       id_inventario: itemInv.id_inventario,
       tipo: itemInv.tipo as 'compresor' | 'valvula' | 'insumo',
+      condicion: itemInv.condicion || 'nuevo',
       sku: itemInv.sku || 'SIN-SKU',
       nombre: itemInv.nombre,
       cantidad: cantidadInicial,
-      ...calculos,
+      stock_disponible: stockDisp,
+      costo_unitario: calculos.costo_unitario,
+      porcentaje_ganancia: calculos.porcentaje_ganancia,
+      costo_unitario_con_ganancia: calculos.costo_unitario_con_ganancia,
+      monto_total_linea_con_ganancia: calculos.monto_total_linea_con_ganancia,
+      porcentaje_iva: calculos.porcentaje_iva,
+      monto_iva: calculos.monto_iva,
     };
 
     setLineasVenta((prev) => [...prev, nuevaLinea]);
@@ -257,7 +263,12 @@ export const OrdenVentaFormPage: React.FC = () => {
       actual[index] = {
         ...target,
         cantidad: nuevaCantidad,
-        ...nuevosCalculos,
+        costo_unitario: nuevosCalculos.costo_unitario,
+        porcentaje_ganancia: nuevosCalculos.porcentaje_ganancia,
+        costo_unitario_con_ganancia: nuevosCalculos.costo_unitario_con_ganancia,
+        monto_total_linea_con_ganancia: nuevosCalculos.monto_total_linea_con_ganancia,
+        porcentaje_iva: nuevosCalculos.porcentaje_iva,
+        monto_iva: nuevosCalculos.monto_iva,
       };
       return actual;
     });
@@ -265,55 +276,8 @@ export const OrdenVentaFormPage: React.FC = () => {
 
   // Remover ítem de la tabla
   const handleRemoverLinea = (index: number) => {
-    const itemEliminado = lineasVenta[index];
     setLineasVenta((prev) => prev.filter((_, i) => i !== index));
-
-    // Limpiar posibles asignaciones de stock físico asociadas a este ítem
-    if (itemEliminado && itemEliminado.tipo !== 'insumo') {
-      setStockFisicoAsignado((prev) => {
-        const nuevo = { ...prev };
-        Object.keys(nuevo).forEach((k) => {
-          if (k.startsWith(`${itemEliminado.id_inventario}_`)) {
-            delete nuevo[k];
-          }
-        });
-        return nuevo;
-      });
-    }
   };
-
-  // ==========================================
-  // UNIDADES FÍSICAS REQUERIDAS (Solo Repuestos Serializados)
-  // ==========================================
-  const unidadesFisicasRequeridas = useMemo<UnidadFisicaVenta[]>(() => {
-    const unidades: UnidadFisicaVenta[] = [];
-    lineasVenta.forEach((linea) => {
-      if (linea.tipo !== 'insumo') {
-        const cant = Math.max(1, Number(linea.cantidad) || 1);
-        for (let sub = 1; sub <= cant; sub++) {
-          unidades.push({
-            unitKey: `${linea.id_inventario}_${sub}`,
-            id_inventario: linea.id_inventario,
-            subIndex: sub,
-            cantidadTotal: cant,
-            nombre: linea.nombre,
-            sku: linea.sku,
-            precioUnitarioConGanancia: Number(linea.costo_unitario_con_ganancia),
-          });
-        }
-      }
-    });
-    return unidades;
-  }, [lineasVenta]);
-
-  // Conjunto de IDs de repuestos físicos ya seleccionados en alguna unidad (para no repetir el mismo en bodega)
-  const repuestosSeleccionadosSet = useMemo(() => {
-    const set = new Set<number>();
-    Object.values(stockFisicoAsignado).forEach((idRep) => {
-      if (idRep) set.add(idRep);
-    });
-    return set;
-  }, [stockFisicoAsignado]);
 
   // ==========================================
   // TOTALES ECONÓMICOS DE LA ORDEN
@@ -375,41 +339,20 @@ export const OrdenVentaFormPage: React.FC = () => {
       return;
     }
 
-    // Validar que todas las unidades de repuestos serializados tengan su pieza física asignada
-    for (const u of unidadesFisicasRequeridas) {
-      const idRepuestoAsignado = stockFisicoAsignado[u.unitKey];
-      if (!idRepuestoAsignado) {
+    // Validar stock disponible antes de enviar
+    for (const l of lineasVenta) {
+      if (l.cantidad > l.stock_disponible) {
         toast.warning(
-          `Debes seleccionar el repuesto físico en bodega para la unidad #${u.subIndex} de "${u.nombre}"`
+          `La cantidad solicitada para "${l.nombre}" (${l.cantidad}) supera el stock disponible para venta (${l.stock_disponible})`
         );
         return;
       }
     }
 
-    // Validar que no haya repuestos físicos duplicados
-    const idsFisicos = Object.values(stockFisicoAsignado);
-    const idsFisicosUnicos = new Set(idsFisicos);
-    if (idsFisicosUnicos.size !== idsFisicos.length) {
-      toast.warning('No puedes asignar el mismo repuesto físico en bodega a más de una unidad.');
-      return;
-    }
-
-    // Construcción del payload según la estructura exacta:
-    // Caso A: Si es insumo:
-    // {
-    //   "id_inventario_insumo_saliente": 1,
-    //   "cantidad": 1,
-    //   "precio_unitario": 67636.36,
-    //   "porcentaje_iva": 19.00
-    // }
-    // Caso B: Si es repuesto serializado:
-    // {
-    //   "id_inventario_repuesto_saliente": 2,
-    //   "porcentaje_iva": 19.00,
-    //   "repuestos_salientes": [
-    //     { "id_repuesto": 14, "precio_unitario": 273363.1 }
-    //   ]
-    // }
+    // Construcción del payload según la estructura solicitada:
+    // Para insumos: id_inventario_insumo_saliente, cantidad, precio_unitario, porcentaje_iva
+    // Para compresores y válvulas: id_inventario_repuesto_saliente, cantidad, precio_unitario, porcentaje_iva
+    // El backend se encarga de asignar los n repuestos físicos correspondientes (FIFO por id_repuesto)
     const detallesPayload: any[] = [];
 
     lineasVenta.forEach((l) => {
@@ -421,22 +364,11 @@ export const OrdenVentaFormPage: React.FC = () => {
           porcentaje_iva: Number(l.porcentaje_iva),
         });
       } else {
-        const cant = Math.max(1, Number(l.cantidad) || 1);
-        const listaRepuestosSalientes = [];
-
-        for (let sub = 1; sub <= cant; sub++) {
-          const unitKey = `${l.id_inventario}_${sub}`;
-          const idRep = stockFisicoAsignado[unitKey];
-          listaRepuestosSalientes.push({
-            id_repuesto: Number(idRep),
-            precio_unitario: Number(l.costo_unitario_con_ganancia),
-          });
-        }
-
         detallesPayload.push({
           id_inventario_repuesto_saliente: l.id_inventario,
+          cantidad: Number(l.cantidad),
+          precio_unitario: Number(l.costo_unitario_con_ganancia),
           porcentaje_iva: Number(l.porcentaje_iva),
-          repuestos_salientes: listaRepuestosSalientes,
         });
       }
     });
@@ -530,9 +462,9 @@ export const OrdenVentaFormPage: React.FC = () => {
                     <tr className="border-b border-border/80 bg-muted/40 text-muted-foreground font-semibold text-[11px]">
                       <th className="py-2.5 px-3 text-center">sku</th>
                       <th className="py-2.5 px-3 text-center">nombre</th>
+                      <th className="py-2.5 px-3 text-center">condicion</th>
+                      <th className="py-2.5 px-3 text-center">stock disponible para venta</th>
                       <th className="py-2.5 px-3 text-center">cantidad</th>
-                      <th className="py-2.5 px-3 text-center">costo unitario</th>
-                      <th className="py-2.5 px-3 text-center">monto total linea</th>
                       <th className="py-2.5 px-3 text-center">porcentaje de ganancia</th>
                       <th className="py-2.5 px-3 text-center">costo unitario con ganancia</th>
                       <th className="py-2.5 px-3 text-center">monto total linea con ganancia</th>
@@ -564,27 +496,45 @@ export const OrdenVentaFormPage: React.FC = () => {
                             {linea.nombre}
                           </td>
 
+                          {/* condicion */}
+                          <td className="py-2.5 px-3 text-center">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${linea.condicion.toLowerCase() === 'usado'
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                }`}
+                            >
+                              {linea.condicion}
+                            </span>
+                          </td>
+
+                          {/* stock disponible para venta */}
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-xs">
+                            <span
+                              className={`px-2 py-0.5 rounded-full ${linea.stock_disponible > 0
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                                }`}
+                            >
+                              {linea.stock_disponible}
+                            </span>
+                          </td>
+
                           {/* cantidad */}
                           <td className="py-2.5 px-3 text-center">
                             <input
                               type="number"
                               min={1}
+                              max={linea.stock_disponible > 0 ? linea.stock_disponible : undefined}
                               value={linea.cantidad}
                               onChange={(e) =>
                                 handleActualizarLinea(idx, 'cantidad', Number(e.target.value))
                               }
-                              className="w-16 px-1.5 py-1 text-xs text-center rounded border border-border/80 bg-background text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className={`w-16 px-1.5 py-1 text-xs text-center rounded border bg-background font-semibold focus:outline-none focus:ring-1 ${linea.cantidad > linea.stock_disponible
+                                  ? 'border-rose-500 text-rose-600 focus:ring-rose-500'
+                                  : 'border-border/80 text-foreground focus:ring-blue-500'
+                                }`}
                             />
-                          </td>
-
-                          {/* costo unitario */}
-                          <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            ${Number(linea.costo_unitario).toFixed(2)}
-                          </td>
-
-                          {/* monto total linea */}
-                          <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            ${Number(linea.monto_total_linea).toFixed(2)}
                           </td>
 
                           {/* porcentaje de ganancia */}
@@ -706,6 +656,7 @@ export const OrdenVentaFormPage: React.FC = () => {
                     const yaSeleccionado = lineasVenta.some(
                       (l) => l.id_inventario === item.id_inventario
                     );
+                    const stockDisp = getStockDisponibleParaVenta(item);
 
                     return (
                       <div
@@ -720,14 +671,14 @@ export const OrdenVentaFormPage: React.FC = () => {
                             {item.nombre}
                           </span>
                           <div
-                            className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono"
-                            title={`SKU: ${item.sku || 'N/A'} | Tipo: ${item.tipo || 'N/A'} | Condición: ${item.condicion || 'N/A'} | Stock: ${item.cantidad_propia || 'N/A'}`}
+                            className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono flex-wrap"
+                            title={`SKU: ${item.sku || 'N/A'} | Tipo: ${item.tipo || 'N/A'} | Condición: ${item.condicion || 'nuevo'} | Disp: ${stockDisp}`}
                           >
                             <span>SKU: {item.sku || 'N/A'}</span>
                             <span>•</span>
-                            <span>Tipo: {item.tipo}</span>
+                            <span className="capitalize">{item.condicion || 'nuevo'}</span>
                             <span>•</span>
-                            <span>Stock: {item.cantidad_propia}</span>
+                            <span className="font-semibold text-foreground">Disp: {stockDisp}</span>
                           </div>
                         </div>
 
@@ -751,105 +702,6 @@ export const OrdenVentaFormPage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* 4. ASIGNACIÓN DE STOCK FÍSICO EN BODEGA (Exacto al boceto) */}
-        {unidadesFisicasRequeridas.length > 0 && (
-          <div className="space-y-4 pt-2">
-            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3 text-dark-700 dark:text-dark-400">
-              <Info className="w-5 h-5 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm leading-relaxed">
-                <span className="font-bold">Asignación de Stock Físico:</span> Por cada unidad física
-                de repuesto serializado cotizado, selecciona el número de serie de bodega que se
-                entregará al cliente.
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {unidadesFisicasRequeridas.map((unidad, idx) => {
-                const repuestosDisponibles =
-                  repuestosDisponiblesPorInventario.get(unidad.id_inventario) || [];
-                const valorActual = stockFisicoAsignado[unidad.unitKey] || '';
-                const esMultiple = unidad.cantidadTotal > 1;
-
-                return (
-                  <div
-                    key={unidad.unitKey}
-                    className="bg-card p-5 rounded-2xl border border-border/80 shadow-xs space-y-3"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs">
-                          {idx + 1}
-                        </span>
-                        <span className="font-bold text-sm text-foreground">{unidad.nombre}</span>
-                        {esMultiple && (
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                            Unidad {unidad.subIndex} de {unidad.cantidadTotal}
-                          </span>
-                        )}
-                        {unidad.sku && (
-                          <span className="text-xs font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded">
-                            {unidad.sku}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs font-semibold text-muted-foreground">
-                        Línea de Venta
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Seleccionar Repuesto Físico en Bodega (Serial y Service Tag){' '}
-                        <span className="text-rose-500">*</span>
-                      </label>
-
-                      {repuestosDisponibles.length === 0 ? (
-                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 shrink-0" />
-                          No hay unidades físicas disponibles en taller para este modelo (propiedad de la empresa, sin orden de salida).
-                        </div>
-                      ) : (
-                        <select
-                          required
-                          value={valorActual}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setStockFisicoAsignado((prev) => ({
-                              ...prev,
-                              [unidad.unitKey]: val,
-                            }));
-                          }}
-                          className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
-                        >
-                          <option value="">-- Seleccionar pieza física en bodega --</option>
-                          {repuestosDisponibles.map((r) => {
-                            // Si ya fue asignado en otra unidad diferente a esta
-                            const asignadoEnOtro =
-                              repuestosSeleccionadosSet.has(r.id_repuesto) &&
-                              valorActual !== r.id_repuesto;
-
-                            return (
-                              <option
-                                key={r.id_repuesto}
-                                value={r.id_repuesto}
-                                disabled={asignadoEnOtro}
-                              >
-                                ID #{r.id_repuesto} | Serial: {r.serial || 'Sin serial'} | Tag:{' '}
-                                {r.service_tag || 'Sin tag'} ({r.estado}){' '}
-                                {asignadoEnOtro ? '(Ya seleccionado)' : ''}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* 5. TOTALES ECONÓMICOS DE LA ORDEN (boceto) */}
         <div className="bg-card p-5 sm:p-6 rounded-2xl border border-border/80 shadow-xs space-y-4">
