@@ -54,6 +54,7 @@ export interface ReparacionItem {
   costo_total?: number | string;
   costo_total_con_ganancia?: number | string;
   monto_total_iva?: number | string;
+  observaciones?: string | null;
   repuesto?: RepuestoItem;
   orden?: OrdenItem;
   admin_inicio?: AdminItem;

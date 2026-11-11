@@ -17,6 +17,8 @@ import {
   Search,
   Check,
   Edit,
+  FileText,
+  Save,
 } from 'lucide-react';
 import { getReparacionByIdAction } from '../../actions/get-reparacion-by-id.action';
 import { getRepuestosAction } from '../../actions/get-repuestos.action';
@@ -28,6 +30,7 @@ import { getAdminsAction } from '../../actions/get-admins.action';
 import { getOrdenesAction } from '../../actions/get-ordenes.action';
 import { getReparacionesAction } from '../../actions/get-reparaciones.action';
 import { updateEstadoServicioTallerAction } from '../../actions/update-estado-servicio-taller.action';
+import { createUpdateReparacionAction } from '../../actions/create-update-reparacion.action';
 import { useReparacionMutation } from '../../hooks/useReparacionMutation';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
@@ -136,6 +139,8 @@ export const ReparacionFormPage = () => {
   const [fechaFin, setFechaFin] = useState<string>('');
   const [idAdminInicio, setIdAdminInicio] = useState<number | ''>('');
   const [idAdminFin, setIdAdminFin] = useState<number | ''>('');
+  const [observaciones, setObservaciones] = useState<string>('');
+  const [isSavingObservaciones, setIsSavingObservaciones] = useState(false);
 
   // Filas seleccionadas de insumos y servicios
   const [insumosSeleccionados, setInsumosSeleccionados] = useState<InsumoFila[]>([]);
@@ -163,6 +168,7 @@ export const ReparacionFormPage = () => {
     setFechaFin(reparacionData.fecha_fin || '');
     setIdAdminInicio(reparacionData.id_admin_fecha_inicio || '');
     setIdAdminFin(reparacionData.id_admin_fecha_fin || '');
+    setObservaciones(reparacionData.observaciones || '');
 
     // Insumos asociados a esta reparación
     const insumosDeEstaReparacion = reparacionData.insumos && reparacionData.insumos.length > 0
@@ -587,6 +593,29 @@ export const ReparacionFormPage = () => {
     });
   }, [serviciosCatalogo, busquedaNombreServicio]);
 
+  // Guardar exclusivamente observaciones en cualquier momento / estado
+  const handleGuardarObservaciones = async () => {
+    if (!id || isCreating) return;
+    try {
+      setIsSavingObservaciones(true);
+      await createUpdateReparacionAction(
+        {
+          id_repuesto: Number(idRepuesto || reparacionData?.id_repuesto),
+          observaciones: observaciones.trim() === '' ? null : observaciones,
+        },
+        id
+      );
+      toast.success('Observaciones actualizadas exitosamente');
+      queryClient.invalidateQueries({ queryKey: ['reparacion-item', id] });
+      queryClient.invalidateQueries({ queryKey: ['reparaciones-listado'] });
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Error al guardar las observaciones';
+      toast.error(msg);
+    } finally {
+      setIsSavingObservaciones(false);
+    }
+  };
+
   // Enviar formulario (Crear o Editar directo)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -607,6 +636,7 @@ export const ReparacionFormPage = () => {
       estado: estadoReparacion,
       fecha_inicio: fechaInicio || null,
       fecha_fin: fechaFin || null,
+      observaciones: observaciones.trim() === '' ? null : observaciones,
       ...totalesEconomicos,
       insumos: insumosSeleccionados.map((i) => ({
         id_reparacion_insumo: i.id_reparacion_insumo,
@@ -791,6 +821,51 @@ export const ReparacionFormPage = () => {
               <span>{fechaFin || 'fecha fin: -'}</span>
             </div>
           </div>
+        </div>
+
+        {/* Campo de Observaciones de la Reparación (hasta 10.000 caracteres) */}
+        <div className="pt-2 border-t border-border/60 space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-blue-500" />
+              Observaciones de la Reparación
+              <span className="text-[11px] font-normal lowercase text-muted-foreground">
+                (opcional - máx. 10.000 caracteres)
+              </span>
+            </label>
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-[11px] font-mono ${
+                  observaciones.length > 9500
+                    ? 'text-rose-500 font-bold'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                {observaciones.length} / 10.000
+              </span>
+              {!isCreating && (
+                <button
+                  type="button"
+                  onClick={handleGuardarObservaciones}
+                  disabled={isSavingObservaciones}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                  title="Guardar observaciones en cualquier momento"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSavingObservaciones ? 'Guardando...' : 'Guardar Observación'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <textarea
+            rows={3}
+            maxLength={10000}
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+            placeholder="Ingrese notas técnicas, detalles de recepción, diagnóstico, causas de falla o cualquier observación relevante sobre este repuesto..."
+            className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-y min-h-[75px]"
+          />
         </div>
       </div>
 

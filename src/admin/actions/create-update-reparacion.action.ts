@@ -34,6 +34,7 @@ export interface CreateUpdateReparacionPayload {
   costo_total?: number;
   costo_total_con_ganancia?: number;
   monto_total_iva?: number;
+  observaciones?: string | null;
   insumos?: InsumoPayload[];
   servicios?: ServicioPayload[];
 }

@@ -241,13 +241,15 @@ export const OrdenReparacionFormPage: React.FC = () => {
     try {
       const baseData = await getInventarioReparacionBaseAction(idInventario);
       if (baseData) {
-        const insumosPayload: CreateOrdenReparacionInsumoPayload[] = baseData.insumos.map((i) => ({
-          id_inventario: i.id_inventario_insumo,
-          cantidad: Number(i.cantidad) || 1,
-          costo_unitario: Number(i.costo_unitario || 0),
-          costo_unitario_con_ganancia: Number(i.costo_unitario_con_ganancia || 0),
-          porcentaje_iva: Number(i.porcentaje_iva ?? 19),
-        }));
+        const insumosPayload: CreateOrdenReparacionInsumoPayload[] = (baseData.insumos || [])
+          .filter((i) => Boolean(i.id_inventario_insumo || i.id_insumo || i.id_inventario))
+          .map((i) => ({
+            id_inventario: Number(i.id_inventario_insumo || i.id_insumo || i.id_inventario),
+            cantidad: Number(i.cantidad) || 1,
+            costo_unitario: Number(i.costo_unitario || 0),
+            costo_unitario_con_ganancia: Number(i.costo_unitario_con_ganancia || 0),
+            porcentaje_iva: Number(i.porcentaje_iva ?? 19),
+          }));
 
         const serviciosPayload: CreateOrdenReparacionServicioPayload[] = baseData.servicios.map((s) => ({
           id_servicio_taller: s.id_servicio_taller,
