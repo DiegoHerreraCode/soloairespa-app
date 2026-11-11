@@ -55,10 +55,30 @@ export interface CreateOrdenRecambioPayload {
 }
 
 // Repuestos entrantes para orden de reparación
+export interface CreateOrdenReparacionInsumoPayload {
+  id_inventario: number;
+  cantidad: number;
+  costo_unitario?: number;
+  porcentaje_ganancia?: number;
+  costo_unitario_con_ganancia?: number;
+  porcentaje_iva?: number;
+}
+
+export interface CreateOrdenReparacionServicioPayload {
+  id_servicio_taller: number;
+  cantidad: number;
+  costo_unitario?: number;
+  porcentaje_ganancia?: number;
+  costo_unitario_con_ganancia?: number;
+  porcentaje_iva?: number;
+}
+
 export interface CreateOrdenRepuestoEntrantePayload {
   id_inventario: number;
   serial: string;
   service_tag: string;
+  insumos?: CreateOrdenReparacionInsumoPayload[];
+  servicios?: CreateOrdenReparacionServicioPayload[];
 }
 
 export interface CreateOrdenReparacionPayload {

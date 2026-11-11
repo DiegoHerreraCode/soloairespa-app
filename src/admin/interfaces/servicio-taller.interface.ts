@@ -8,6 +8,7 @@ export interface ServicioTallerItem {
   costo_base: number;
   porcentaje_iva: number;
   porcentaje_ganancia: number;
+  monto_venta_unitario?: number | string;
   tipo_servicio_taller?: TipoServicioTallerItem;
   created_at?: string;
   updated_at?: string;

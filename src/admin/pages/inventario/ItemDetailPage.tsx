@@ -20,6 +20,7 @@ import {
   AlertCircle,
   ShieldCheck,
   Wrench,
+  ExternalLink,
 } from 'lucide-react';
 import { getInventarioByIdAction } from '../../actions/get-inventario-by-id.action';
 import { getRepuestosAction } from '../../actions/get-repuestos.action';
@@ -560,6 +561,42 @@ export const ItemDetailPage = () => {
           );
         })()}
       </div>
+
+      {/* 2.5 Configuración de Reparación Base (para compresores y válvulas usados) */}
+      {(itemData.tipo === 'compresor' || itemData.tipo === 'valvula') &&
+        itemData.condicion === 'usado' && (
+          <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-amber-500" />
+                Configuración de Reparación Base
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Configura en una vista completa los insumos y servicios base requeridos para reacondicionar este equipo.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-center">
+                <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 block">
+                  Monto Venta Reparación Base
+                </span>
+                <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm sm:text-base">
+                  ${Number(itemData.monto_venta_reparacion_base || 0).toLocaleString('es-CL')}
+                </span>
+              </div>
+
+              <Link
+                to={`/admin/inventario/items/${itemData.id_inventario}/reparacion-base`}
+                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                <Wrench className="w-4 h-4" />
+                <span>Configurar Reparación Base</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
+              </Link>
+            </div>
+          </div>
+        )}
 
       {/* 3. Tabla de Proveedores que suministran este ítem y su último monto de compra */}
       <div className="bg-card p-6 sm:p-8 rounded-2xl border border-border/80 shadow-xs space-y-4">

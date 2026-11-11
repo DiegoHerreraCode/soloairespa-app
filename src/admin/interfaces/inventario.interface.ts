@@ -24,6 +24,7 @@ export interface InventarioItem {
   monto_reparacion_max?: number | string;
   ultimo_monto_compra?: number | string;
   monto_venta_unitario?: number | string;
+  monto_venta_reparacion_base?: number | string | null;
   created_at?: string;
   updated_at?: string;
   inventario_proveedores?: InventarioProveedorItem[];

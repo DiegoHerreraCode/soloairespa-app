@@ -36,6 +36,7 @@ import { MarcaFormPage } from './admin/pages/inventario/MarcaFormPage';
 import { ItemPage } from './admin/pages/inventario/ItemPage';
 import { ItemFormPage } from './admin/pages/inventario/ItemFormPage';
 import { ItemDetailPage } from './admin/pages/inventario/ItemDetailPage';
+import { InventarioReparacionBasePage } from './admin/pages/inventario/InventarioReparacionBasePage';
 import { TallerMenuPage } from './admin/pages/taller/TallerMenuPage';
 import { TipoServicioTallerPage } from './admin/pages/taller/TipoServicioTallerPage';
 import { TipoServicioTallerFormPage } from './admin/pages/taller/TipoServicioTallerFormPage';
@@ -276,6 +277,10 @@ export const appRouter = createBrowserRouter([
           {
             path: 'items/:id/detalle', // ruta: admin/inventario/items/:id/detalle (Ver detalle del ítem y registros físicos)
             element: <ItemDetailPage />,
+          },
+          {
+            path: 'items/:id/reparacion-base', // ruta: admin/inventario/items/:id/reparacion-base (Configuración de reparación base)
+            element: <InventarioReparacionBasePage />,
           },
           {
             path: 'items/:id', // ruta: admin/inventario/items/:id (crear con 'new' o editar)

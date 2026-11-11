@@ -14,6 +14,7 @@ interface QuickCreateItemModalProps {
   onClose: () => void;
   onCreated: (item: InventarioItem) => void;
   defaultTipo?: 'insumo' | 'compresor' | 'valvula' | 'equipo';
+  defaultCondicion?: string;
   defaultProveedorId?: number;
 }
 
@@ -28,6 +29,7 @@ export const QuickCreateItemModal: React.FC<QuickCreateItemModalProps> = ({
   onClose,
   onCreated,
   defaultTipo = 'insumo',
+  defaultCondicion,
   defaultProveedorId,
 }) => {
   const queryClient = useQueryClient();
@@ -47,7 +49,9 @@ export const QuickCreateItemModal: React.FC<QuickCreateItemModalProps> = ({
   const [sku, setSku] = useState('');
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState<'insumo' | 'compresor' | 'valvula' | 'equipo'>(defaultTipo);
-  const [condicion, setCondicion] = useState<string>('NA');
+  const [condicion, setCondicion] = useState<string>(
+    defaultCondicion || (defaultTipo === 'insumo' ? 'NA' : 'usado')
+  );
   const [idModelo, setIdModelo] = useState<number | ''>('');
   const [isQuickModeloOpen, setIsQuickModeloOpen] = useState(false);
   const [stockMinimo, setStockMinimo] = useState<number>(5);
