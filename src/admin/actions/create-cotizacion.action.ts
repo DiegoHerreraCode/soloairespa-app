@@ -26,9 +26,17 @@ export interface CreateCotizacionRecambioDetallePayload {
   porcentaje_iva: number;
 }
 
+export interface RepuestoEntranteCotizacionRecambioPayload {
+  service_tag: string;
+  serial: string;
+  id_inventario: number;
+}
+
 export interface CreateCotizacionRecambioPayload {
   id_cliente: number;
   id_tipo_orden: number;
+  correo_destino?: string;
+  repuestos_entrantes_recambio?: RepuestoEntranteCotizacionRecambioPayload[];
   detalles_inventario: CreateCotizacionRecambioDetallePayload[];
 }
 

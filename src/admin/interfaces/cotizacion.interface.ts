@@ -62,6 +62,11 @@ export interface CotizacionItem {
     serial: string;
     id_inventario: number;
   }>;
+  repuestos_entrantes_recambio?: Array<{
+    service_tag: string;
+    serial: string;
+    id_inventario: number;
+  }>;
   cliente?: ClienteItem;
   tipo_orden?: TipoOrdenItem;
   admin?: AdminItem;

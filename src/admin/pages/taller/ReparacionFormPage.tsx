@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -9,6 +9,7 @@ import {
   UserPlus,
   Clock,
   AlertCircle,
+  CheckCircle,
   CheckCircle2,
   XCircle,
   Calendar,
@@ -71,12 +72,23 @@ interface ServicioFila {
 
 export const ReparacionFormPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const isCreating = !id || id === 'new';
 
   // Modo edición vs Solo lectura: si no es new, arranca en modo 'solo lectura' (boceto 1), y se pasa a modo edición al presionar 'Editar Sin Generar Cotización Extra'
   const [isEditingDirecto, setIsEditingDirecto] = useState(false);
+
+  // Redirección para finalizar reparación pasando por la pantalla de devolver insumos sobrantes
+  const handleFinalizar = (idRep: number) => {
+    const serviciosPendientes = serviciosSeleccionados.some((ser) => ser.estado !== 'finalizado');
+    if (serviciosPendientes) {
+      toast.error('No se puede finalizar la reparación porque no todos sus servicios están finalizados');
+      return;
+    }
+    navigate(`/admin/taller/reparaciones/${idRep}/devolver-insumos`);
+  };
 
   const { saveReparacion, isPending: isSaving } = useReparacionMutation();
 
@@ -707,6 +719,18 @@ export const ReparacionFormPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Botón Finalizar si la reparación está en proceso */}
+          {reparacionData?.estado === 'en_proceso' && !isCreating && (
+            <button
+              type="button"
+              onClick={() => handleFinalizar(Number(id))}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-all shadow-xs cursor-pointer"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Finalizar Reparación
+            </button>
+          )}
+
           <Link
             to="/admin/taller/reparaciones"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
@@ -1376,6 +1400,17 @@ export const ReparacionFormPage = () => {
 
         {/* Fila separada de botones de acción para máxima legibilidad y comodidad */}
         <div className="flex items-center justify-end gap-3 pt-2">
+          {reparacionData?.estado === 'en_proceso' && !isCreating && isReadOnly && (
+            <button
+              type="button"
+              onClick={() => handleFinalizar(Number(id))}
+              className="px-6 py-3 text-xs sm:text-sm font-bold rounded-xl bg-card border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-xs transition-all cursor-pointer flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Finalizar Reparación
+            </button>
+          )}
+
           {isCreating ? (
             <button
               type="button"

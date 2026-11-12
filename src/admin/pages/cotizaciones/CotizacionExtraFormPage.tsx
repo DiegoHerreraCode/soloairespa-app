@@ -9,6 +9,7 @@ import {
   XCircle,
   Loader2,
   FilePlus,
+  Mail,
 } from 'lucide-react';
 
 import { getReparacionesAction } from '@/admin/actions/get-reparaciones.action';
@@ -102,6 +103,7 @@ export const CotizacionExtraFormPage: React.FC = () => {
 
   // Estado de la reparación seleccionada
   const [idReparacionSeleccionada, setIdReparacionSeleccionada] = useState<number | ''>('');
+  const [correoDestino, setCorreoDestino] = useState('');
   const [isQuickInsumoOpen, setIsQuickInsumoOpen] = useState(false);
   const [isQuickServicioOpen, setIsQuickServicioOpen] = useState(false);
 
@@ -134,6 +136,23 @@ export const CotizacionExtraFormPage: React.FC = () => {
     if (!idReparacionSeleccionada) return null;
     return todasLasReparaciones.find((r) => r.id_reparacion === Number(idReparacionSeleccionada)) || null;
   }, [idReparacionSeleccionada, todasLasReparaciones]);
+
+  // Pre-cargar correo del cliente de la reparación seleccionada
+  useEffect(() => {
+    if (reparacionSeleccionada) {
+      const ordenObj = reparacionSeleccionada.id_orden
+        ? (reparacionSeleccionada.orden || ordenesMap.get(reparacionSeleccionada.id_orden))
+        : reparacionSeleccionada.orden;
+      const correoCliente = ordenObj?.cliente?.correo;
+      if (correoCliente) {
+        setCorreoDestino(correoCliente);
+      } else {
+        setCorreoDestino('');
+      }
+    } else {
+      setCorreoDestino('');
+    }
+  }, [reparacionSeleccionada, ordenesMap]);
 
   // Service Tag del repuesto de la reparación seleccionada
   const serviceTagReparacion = useMemo(() => {
@@ -626,6 +645,7 @@ export const CotizacionExtraFormPage: React.FC = () => {
 
       const payload = {
         crear_cotizacion_extra: true as const,
+        correo_destino: correoDestino.trim() || undefined,
         insumos: insumosSeleccionados.map((ins) => ({
           id_inventario_insumo_saliente: Number(ins.id_inventario),
           cantidad: Number(ins.cantidad),
@@ -710,40 +730,61 @@ export const CotizacionExtraFormPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 2. SELECTOR DE REPARACIÓN */}
-        <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2 max-w-xl">
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Seleccione la Reparación <span className="text-rose-500">*</span>
-          </label>
-          <SearchableSelect
-            options={reparacionesDisponibles.map((r) => {
-              const tag = r.repuesto?.service_tag || (r.repuesto?.serial ? `Serial: ${r.repuesto.serial}` : `Repuesto #${r.id_repuesto}`);
-              const numOrden = r.id_orden ? `Orden #${r.id_orden}` : (r.orden?.id_orden ? `Orden #${r.orden.id_orden}` : 'Sin orden');
+        {/* 2. SELECTOR DE REPARACIÓN Y CORREO DESTINO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
+          {/* Selector de Reparación */}
+          <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Seleccione la Reparación <span className="text-rose-500">*</span>
+            </label>
+            <SearchableSelect
+              options={reparacionesDisponibles.map((r) => {
+                const tag = r.repuesto?.service_tag || (r.repuesto?.serial ? `Serial: ${r.repuesto.serial}` : `Repuesto #${r.id_repuesto}`);
+                const numOrden = r.id_orden ? `Orden #${r.id_orden}` : (r.orden?.id_orden ? `Orden #${r.orden.id_orden}` : 'Sin orden');
 
-              const ordenObj = r.id_orden ? (r.orden || ordenesMap.get(r.id_orden)) : r.orden;
-              const clienteObj = ordenObj?.cliente;
-              const clienteNombre = clienteObj?.nombre ? ` • ${clienteObj.nombre}` : '';
-              const clienteRut = clienteObj?.rut ? ` (RUT: ${clienteObj.rut})` : '';
+                const ordenObj = r.id_orden ? (r.orden || ordenesMap.get(r.id_orden)) : r.orden;
+                const clienteObj = ordenObj?.cliente;
+                const clienteNombre = clienteObj?.nombre ? ` • ${clienteObj.nombre}` : '';
+                const clienteRut = clienteObj?.rut ? ` (RUT: ${clienteObj.rut})` : '';
 
-              return {
-                value: r.id_reparacion,
-                label: `Reparación #${r.id_reparacion} (${tag})`,
-                sublabel: `${numOrden}${clienteNombre}${clienteRut}`,
-                badge: r.estado,
-                searchTerms: `${r.id_reparacion} ${tag} ${r.id_orden || ''} ${clienteObj?.nombre || ''} ${clienteObj?.rut || ''}`,
-              };
-            })}
-            value={idReparacionSeleccionada}
-            onChange={(val) => setIdReparacionSeleccionada(val ? Number(val) : '')}
-            placeholder="-- Seleccione la Reparación --"
-            searchPlaceholder="Buscar por ID reparación, service tag, orden, cliente o RUT..."
-            required
-          />
-          {reparacionesDisponibles.length === 0 && (
-            <p className="text-xs text-amber-500 font-medium">
-              No hay reparaciones con orden asociada pendientes o en proceso disponibles.
+                return {
+                  value: r.id_reparacion,
+                  label: `Reparación #${r.id_reparacion} (${tag})`,
+                  sublabel: `${numOrden}${clienteNombre}${clienteRut}`,
+                  badge: r.estado,
+                  searchTerms: `${r.id_reparacion} ${tag} ${r.id_orden || ''} ${clienteObj?.nombre || ''} ${clienteObj?.rut || ''}`,
+                };
+              })}
+              value={idReparacionSeleccionada}
+              onChange={(val) => setIdReparacionSeleccionada(val ? Number(val) : '')}
+              placeholder="-- Seleccione la Reparación --"
+              searchPlaceholder="Buscar por ID reparación, service tag, orden, cliente o RUT..."
+              required
+            />
+            {reparacionesDisponibles.length === 0 && (
+              <p className="text-xs text-amber-500 font-medium">
+                No hay reparaciones con orden asociada pendientes o en proceso disponibles.
+              </p>
+            )}
+          </div>
+
+          {/* Input Correo Destino */}
+          <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-blue-500" />
+              Enviar PDF de Cotización Extra a:
+            </label>
+            <input
+              type="email"
+              value={correoDestino}
+              onChange={(e) => setCorreoDestino(e.target.value)}
+              placeholder="correo@cliente.com"
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Se envía automáticamente al generar la cotización extra.
             </p>
-          )}
+          </div>
         </div>
 
         {/* 3. LISTA DE INSUMOS SELECCIONADOS */}

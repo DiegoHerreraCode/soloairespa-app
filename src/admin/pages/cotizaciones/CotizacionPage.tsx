@@ -16,7 +16,6 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { useCotizaciones } from '../../hooks/useCotizaciones';
-import { aceptarCotizacionAction } from '../../actions/aceptar-cotizacion.action';
 import { rechazarCotizacionAction } from '../../actions/rechazar-cotizacion.action';
 import { anularCotizacionAction } from '../../actions/anular-cotizacion.action';
 import { getClientesAction } from '../../actions/get-clientes.action';
@@ -93,42 +92,8 @@ export const CotizacionPage = () => {
     },
   });
 
-  // 3. Mutación Aceptar Cotización (Solo para casos directos como tipo Extra de reparación)
-  const aceptarMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload?: Record<string, any> }) =>
-      aceptarCotizacionAction(id, payload),
-    onSuccess: (_, variables) => {
-      toast.success(`Cotización #${variables.id} aceptada exitosamente`);
-      queryClient.invalidateQueries({ queryKey: ['cotizaciones-listado'] });
-      queryClient.invalidateQueries({ queryKey: ['reparaciones-listado'] });
-      queryClient.invalidateQueries({ queryKey: ['ordenes-listado'] });
-    },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message || 'Error al aceptar la cotización';
-      toast.error(msg);
-    },
-  });
-
-  // Manejador del botón Aceptar
+  // Manejador del botón Aceptar: redirige a la pantalla dedicada de aceptación
   const handleAceptarClick = (cot: CotizacionItem) => {
-    // Si es tipo 'extra' de reparación, solicitar num_orden_compra opcional antes de aceptar
-    if (cot.tipo === 'extra') {
-      const oc = window.prompt(
-        `Aceptar cotización extra ${cot.num_cotizacion}.\nIngrese el N° Orden de Compra del cliente (opcional):`,
-        ''
-      );
-      if (oc === null) return; // cancelado por el usuario
-
-      aceptarMutation.mutate({
-        id: cot.id_cotizacion,
-        payload: {
-          num_orden_compra: oc.trim() || undefined,
-        },
-      });
-      return;
-    }
-
-    // Para cotizaciones iniciales (Venta, Recambio, Reparación), se redirige al componente dedicado de aceptación
     navigate(`/admin/cotizaciones/${cot.id_cotizacion}/aceptar`);
   };
 
@@ -611,8 +576,7 @@ export const CotizacionPage = () => {
                               <button
                                 type="button"
                                 onClick={() => handleAceptarClick(cot)}
-                                disabled={aceptarMutation.isPending}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
                                 title="Aceptar cotización"
                               >
                                 <Check className="w-3.5 h-3.5" />

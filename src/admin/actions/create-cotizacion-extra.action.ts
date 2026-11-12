@@ -19,6 +19,7 @@ export interface CotizacionExtraServicioPayload {
 
 export interface CreateCotizacionExtraPayload {
   crear_cotizacion_extra: true;
+  correo_destino?: string;
   insumos: CotizacionExtraInsumoPayload[];
   servicios: CotizacionExtraServicioPayload[];
 }

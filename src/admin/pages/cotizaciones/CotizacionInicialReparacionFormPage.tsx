@@ -543,7 +543,7 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
         </div>
 
         <Link
-          to="/admin/cotizaciones/listado"
+          to="/admin/cotizaciones/new/inicial"
           className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />

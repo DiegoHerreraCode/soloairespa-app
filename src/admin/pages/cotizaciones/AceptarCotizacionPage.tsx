@@ -11,20 +11,11 @@ import {
   Loader2,
   ShieldCheck,
   AlertTriangle,
-  Copy,
 } from 'lucide-react';
 
 import { getCotizacionByIdAction } from '@/admin/actions/get-cotizacion-by-id.action';
-import { getRepuestosAction } from '@/admin/actions/get-repuestos.action';
-import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { aceptarCotizacionAction } from '@/admin/actions/aceptar-cotizacion.action';
-import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
-import type {
-  CotizacionItem,
-  CotizacionDetalleInventarioItem,
-} from '@/admin/interfaces/cotizacion.interface';
-import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
-import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
+import type { CotizacionItem } from '@/admin/interfaces/cotizacion.interface';
 
 export const AceptarCotizacionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,36 +33,12 @@ export const AceptarCotizacionPage: React.FC = () => {
     enabled: !!id,
   });
 
-  // 2. Cargar Repuestos para seleccionar piezas físicas en stock
-  const { data: repuestos = [], isLoading: isLoadingRepuestos } = useQuery<RepuestoItem[]>({
-    queryKey: ['repuestos-stock'],
-    queryFn: getRepuestosAction,
-  });
-
-  // 3. Cargar Inventario para selección de tipo de equipo (compresor/válvula)
-  const { data: inventario = [], isLoading: isLoadingInventario } = useQuery<InventarioItem[]>({
-    queryKey: ['inventario-catalogo'],
-    queryFn: getInventarioAction,
-  });
-
   // ==========================================
   // ESTADOS DEL FORMULARIO SEGÚN CASO
   // ==========================================
 
   // Estado para N° Orden de Compra (opcional)
   const [numOrdenCompra, setNumOrdenCompra] = useState<string>('');
-
-  // CASO 2 (Recambio): { [lineIndex]: { id_repuesto_saliente, serial_entrante, service_tag_entrante } }
-  const [recambioDetalles, setRecambioDetalles] = useState<
-    Record<
-      number,
-      {
-        id_repuesto_saliente: number | '';
-        serial_entrante: string;
-        service_tag_entrante: string;
-      }
-    >
-  >({});
 
   // CASO 3 (Reparación): Fecha entrega y equipos entrantes
   const [fechaEntregaReparacion, setFechaEntregaReparacion] = useState<string>('');
@@ -81,123 +48,6 @@ export const AceptarCotizacionPage: React.FC = () => {
   const tipoOrdenNombre = useMemo(() => {
     return (cotizacion?.tipo_orden?.nombre || '').toLowerCase().trim();
   }, [cotizacion]);
-
-  // Filtro de líneas de detalles de inventario
-  const detallesInventario = useMemo(() => {
-    return cotizacion?.detallesInventario || cotizacion?.detalles_inventario || [];
-  }, [cotizacion]);
-
-  interface ItemUnitarioRecambio {
-    unitIndex: number;
-    lineIndex: number;
-    subIndex: number;
-    id_inventario: number;
-    lineaOriginal: CotizacionDetalleInventarioItem;
-  }
-
-  const itemsRecambioUnitarios = useMemo<ItemUnitarioRecambio[]>(() => {
-    const items: ItemUnitarioRecambio[] = [];
-    let currentIdx = 0;
-    detallesInventario.forEach((det, lineIdx) => {
-      if (det.id_inventario_repuesto_saliente !== null && det.id_inventario_repuesto_saliente !== undefined) {
-        const cant = Math.max(1, Number(det.cantidad) || 1);
-        for (let sub = 1; sub <= cant; sub++) {
-          items.push({
-            unitIndex: currentIdx++,
-            lineIndex: lineIdx,
-            subIndex: sub,
-            id_inventario: det.id_inventario_repuesto_saliente,
-            lineaOriginal: det,
-          });
-        }
-      }
-    });
-    return items;
-  }, [detallesInventario]);
-
-  // Mapa de repuestos disponibles en taller por id_inventario
-  // Regla: propietario === true && !id_orden_salida
-  const repuestosDisponiblesPorInventario = useMemo(() => {
-    const map = new Map<number, RepuestoItem[]>();
-    for (const r of repuestos) {
-      if (r.propietario === true && (r.id_orden_salida === null || r.id_orden_salida === undefined)) {
-        const list = map.get(r.id_inventario) || [];
-        list.push(r);
-        map.set(r.id_inventario, list);
-      }
-    }
-    return map;
-  }, [repuestos]);
-
-  // Conjunto de service_tags existentes en base de datos
-  const existingServiceTagsSet = useMemo(() => {
-    const set = new Set<string>();
-    repuestos.forEach((r) => {
-      if (r.service_tag) set.add(r.service_tag.toLowerCase().trim());
-    });
-    return set;
-  }, [repuestos]);
-
-  // Estados para "Aplicar a todos" en seriales
-  const [bulkSerialRecambio, setBulkSerialRecambio] = useState<string>('');
-
-  // Auto-precargar service_tag y serial para ítems de recambio inicial
-  React.useEffect(() => {
-    if (tipoCotizacion === 'inicial' && tipoOrdenNombre === 'recambio' && itemsRecambioUnitarios.length > 0) {
-      setRecambioDetalles((prev) => {
-        const next = { ...prev };
-        let hasChanges = false;
-        const currentTags = new Set<string>(existingServiceTagsSet);
-
-        // Registrar los tags ya presentes en el estado
-        Object.values(next).forEach((d) => {
-          if (d?.service_tag_entrante) currentTags.add(d.service_tag_entrante.toLowerCase().trim());
-        });
-
-        itemsRecambioUnitarios.forEach((item) => {
-          if (!next[item.unitIndex]) {
-            const itemInv = inventario.find((i) => i.id_inventario === item.id_inventario);
-            const tag = generarServiceTagUnico(itemInv?.tipo || 'compresor', currentTags);
-            next[item.unitIndex] = {
-              id_repuesto_saliente: '',
-              serial_entrante: tag,
-              service_tag_entrante: tag,
-            };
-            hasChanges = true;
-          }
-        });
-
-        return hasChanges ? next : prev;
-      });
-    }
-  }, [tipoCotizacion, tipoOrdenNombre, itemsRecambioUnitarios, existingServiceTagsSet, inventario]);
-
-  // Aplicar serial masivo a todas las unidades de recambio entrante
-  const handleApplySerialToRecambio = () => {
-    const val = bulkSerialRecambio.trim();
-    if (!val) {
-      toast.warning('Ingresa un serial para aplicar a todas las piezas entrantes de recambio');
-      return;
-    }
-
-    setRecambioDetalles((prev) => {
-      const updated = { ...prev };
-      itemsRecambioUnitarios.forEach((item) => {
-        const actual = updated[item.unitIndex] || {
-          id_repuesto_saliente: '',
-          serial_entrante: '',
-          service_tag_entrante: '',
-        };
-        updated[item.unitIndex] = {
-          ...actual,
-          serial_entrante: val,
-        };
-      });
-      return updated;
-    });
-
-    toast.success(`Serial "${val}" aplicado a todas las piezas entrantes de recambio`);
-  };
 
   // Mutación para Aceptar Cotización
   const aceptarMutation = useMutation({
@@ -246,52 +96,10 @@ export const AceptarCotizacionPage: React.FC = () => {
 
     // CASO 2: Recambio Inicial
     if (tipoOrdenNombre === 'recambio') {
-      const detallesPayload: Array<{
-        id_repuesto_saliente: number;
-        serial_entrante: string;
-        service_tag_entrante: string;
-      }> = [];
-
-      for (let i = 0; i < itemsRecambioUnitarios.length; i++) {
-        const itemUnitario = itemsRecambioUnitarios[i];
-        const rec = recambioDetalles[itemUnitario.unitIndex];
-        if (!rec || !rec.id_repuesto_saliente) {
-          toast.warning(`Debes seleccionar la pieza física que sale para la unidad #${itemUnitario.subIndex} de "${itemUnitario.lineaOriginal.inventarioRepuestoSaliente?.nombre || 'Recambio'}"`);
-          return;
-        }
-        if (!rec.serial_entrante.trim()) {
-          toast.warning(`Debes ingresar el número de serial de la pieza entrante del cliente para la unidad #${itemUnitario.subIndex}`);
-          return;
-        }
-        if (!rec.service_tag_entrante.trim()) {
-          toast.warning(`Debes ingresar el service tag descriptivo para la pieza entrante en la unidad #${itemUnitario.subIndex}`);
-          return;
-        }
-
-        detallesPayload.push({
-          id_repuesto_saliente: Number(rec.id_repuesto_saliente),
-          serial_entrante: rec.serial_entrante.trim(),
-          service_tag_entrante: rec.service_tag_entrante.trim(),
-        });
-      }
-
-      // Validar repuestos salientes duplicados
-      const idsSet = new Set(detallesPayload.map((d) => d.id_repuesto_saliente));
-      if (idsSet.size !== detallesPayload.length) {
-        toast.warning('No puedes seleccionar la misma pieza física saliente en más de una unidad.');
-        return;
-      }
-
-      // Validar service_tags de las piezas entrantes
-      const serviceTagsSet = new Set(detallesPayload.map((d) => d.service_tag_entrante));
-      if (serviceTagsSet.size !== detallesPayload.length) {
-        toast.warning('No puedes seleccionar el mismo service_tag entrante en más de una unidad.');
-        return;
-      }
-
+      // El sistema descuenta y asigna automáticamente la pieza física que sale (FIFO de bodega: reparada)
+      // y registra la pieza entrante del cliente usando la información previamente capturada en la cotización.
       aceptarMutation.mutate({
         num_orden_compra: numOrdenCompra.trim() || undefined,
-        detalles: detallesPayload,
       });
       return;
     }
@@ -317,12 +125,12 @@ export const AceptarCotizacionPage: React.FC = () => {
   };
 
   // Estados de carga generales
-  if (isLoadingCotizacion || isLoadingRepuestos || isLoadingInventario) {
+  if (isLoadingCotizacion) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
         <p className="text-sm font-medium text-muted-foreground">
-          Cargando datos de la cotización y stock disponible...
+          Cargando datos de la cotización...
         </p>
       </div>
     );
@@ -443,175 +251,20 @@ export const AceptarCotizacionPage: React.FC = () => {
             CASO 2: COTIZACIÓN INICIAL DE RECAMBIO
             ============================================================ */}
         {tipoCotizacion === 'inicial' && tipoOrdenNombre === 'recambio' && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3 text-dark-700 dark:text-dark-300 flex-1">
-                <RefreshCw className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-                <div className="text-xs sm:text-sm leading-relaxed">
-                  <span className="font-bold">Intercambio de Piezas:</span> Por cada unidad de repuesto en recambio,
-                  asigna la pieza física del taller que sale e ingresa el serial y tag de servicio de la pieza usada que el cliente entrega.
-                </div>
+          <div className="bg-card p-6 rounded-2xl border border-amber-500/30 shadow-xs space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <RefreshCw className="w-6 h-6" />
               </div>
-
-              {/* Botón Aplicar a Todos para serial entrante */}
-              {itemsRecambioUnitarios.length > 0 && (
-                <div className="flex items-center gap-2 shrink-0 bg-card p-3 rounded-xl border border-border/80">
-                  <input
-                    type="text"
-                    placeholder="Serial a aplicar a todos..."
-                    value={bulkSerialRecambio}
-                    onChange={(e) => setBulkSerialRecambio(e.target.value)}
-                    className="w-44 px-3 py-1.5 text-xs rounded-lg bg-background border border-border/80 text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplySerialToRecambio}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
-                    title="Aplica este serial a todas las piezas entrantes de recambio"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    Aplicar a todos
-                  </button>
-                </div>
-              )}
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">Confirmación y Generación de Orden de Recambio</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Al aceptar esta cotización, el sistema generará automáticamente la orden de recambio correspondiente.
+                  La pieza reparada garantizada de la bodega se asignará mediante FIFO y se registrará la pieza usada entrante
+                  del cliente utilizando los seriales y service tags ingresados durante la cotización.
+                </p>
+              </div>
             </div>
-
-            {itemsRecambioUnitarios.length === 0 ? (
-              <div className="bg-card p-6 rounded-2xl border border-border/80 text-center text-muted-foreground text-sm">
-                No se encontraron detalles de recambio en la cotización.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {itemsRecambioUnitarios.map((item) => {
-                  const idInventario = item.id_inventario;
-                  const repuestosDisponibles = repuestosDisponiblesPorInventario.get(idInventario) || [];
-                  const repuestoInfo =
-                    item.lineaOriginal.inventarioRepuestoSaliente ||
-                    item.lineaOriginal.inventario_repuesto_saliente ||
-                    inventario.find((i) => i.id_inventario === idInventario);
-
-                  const detalleActual = recambioDetalles[item.unitIndex] || {
-                    id_repuesto_saliente: '',
-                    serial_entrante: '',
-                    service_tag_entrante: '',
-                  };
-
-                  const esMultiple = (Number(item.lineaOriginal.cantidad) || 1) > 1;
-
-                  return (
-                    <div
-                      key={item.unitIndex}
-                      className="bg-card p-5 rounded-2xl border border-border/80 shadow-xs space-y-4"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                            {item.unitIndex + 1}
-                          </span>
-                          <span className="font-bold text-sm text-foreground">
-                            {repuestoInfo?.nombre || `Línea de Recambio #${item.unitIndex + 1}`}
-                          </span>
-                          {esMultiple && (
-                            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              Unidad {item.subIndex} de {item.lineaOriginal.cantidad}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs font-semibold text-muted-foreground">
-                          Línea de Cotización
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {/* 1. Selector de pieza física que sale */}
-                        <div className="space-y-1.5 md:col-span-3">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Pieza de la Empresa que Sale (Bodega) <span className="text-rose-500">*</span>
-                          </label>
-                          {repuestosDisponibles.length === 0 ? (
-                            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-2">
-                              <AlertTriangle className="w-4 h-4 shrink-0" />
-                              No hay unidades físicas disponibles en taller para este modelo.
-                            </div>
-                          ) : (
-                            <select
-                              required
-                              value={detalleActual.id_repuesto_saliente}
-                              onChange={(e) => {
-                                const val = e.target.value ? Number(e.target.value) : '';
-                                setRecambioDetalles((prev) => ({
-                                  ...prev,
-                                  [item.unitIndex]: {
-                                    ...detalleActual,
-                                    id_repuesto_saliente: val,
-                                  },
-                                }));
-                              }}
-                              className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all font-mono"
-                            >
-                              <option value="">-- Seleccionar pieza física en bodega --</option>
-                              {repuestosDisponibles.map((r) => (
-                                <option key={r.id_repuesto} value={r.id_repuesto}>
-                                  ID #{r.id_repuesto} | Serial: {r.serial || 'Sin serial'} | Tag: {r.service_tag || 'Sin tag'} ({r.estado})
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-
-                        {/* 2. Serial entrante del cliente */}
-                        <div className="space-y-1.5 md:col-span-1">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Serial Pieza del Cliente <span className="text-rose-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Ej: SN-CLI-REC-001"
-                            value={detalleActual.serial_entrante}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setRecambioDetalles((prev) => ({
-                                ...prev,
-                                [item.unitIndex]: {
-                                  ...detalleActual,
-                                  serial_entrante: val,
-                                },
-                              }));
-                            }}
-                            className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all font-mono"
-                          />
-                        </div>
-
-                        {/* 3. Service Tag o etiqueta entrante */}
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Nombre / Tag Descriptivo Pieza Entrante <span className="text-rose-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Ej: Compresor Usado Cliente A"
-                            value={detalleActual.service_tag_entrante}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setRecambioDetalles((prev) => ({
-                                ...prev,
-                                [item.unitIndex]: {
-                                  ...detalleActual,
-                                  service_tag_entrante: val,
-                                },
-                              }));
-                            }}
-                            className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 
