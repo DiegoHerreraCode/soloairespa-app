@@ -738,7 +738,7 @@ export const OrdenReparacionFormPage: React.FC = () => {
 
                         <div className="flex items-center gap-1.5">
                           <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-                          <span className="text-muted-foreground">Monto Reparación Base:</span>
+                          <span className="text-muted-foreground">Monto Reparación:</span>
                           <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                             ${Number(fila.monto_base || 0).toLocaleString('es-CL', {
                               minimumFractionDigits: 2,

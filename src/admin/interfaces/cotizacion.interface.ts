@@ -57,6 +57,11 @@ export interface CotizacionItem {
   motivo_anulacion?: string | null;
   num_repuestos_a_reparar?: number;
   services_tags_repuestos_a_reparar?: string[];
+  repuestos_entrantes_reparacion?: Array<{
+    service_tag: string;
+    serial: string;
+    id_inventario: number;
+  }>;
   cliente?: ClienteItem;
   tipo_orden?: TipoOrdenItem;
   admin?: AdminItem;
