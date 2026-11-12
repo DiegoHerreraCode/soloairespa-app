@@ -38,8 +38,9 @@ export const CotizacionPage = () => {
     return new Map<number, ClienteItem>(clientes.map((c) => [c.id_cliente, c]));
   }, [clientes]);
 
-  // Estados de filtros (num_cotizacion, nombre cliente, rut cliente, tipo de orden, tipo, estado, fecha desde y fecha hasta)
+  // Estados de filtros (num_cotizacion, num_orden_compra, nombre cliente, rut cliente, tipo de orden, tipo, estado, fecha desde y fecha hasta)
   const [numCotizacionFilter, setNumCotizacionFilter] = useState('');
+  const [numOrdenCompraFilter, setNumOrdenCompraFilter] = useState('');
   const [nombreClienteFilter, setNombreClienteFilter] = useState('');
   const [rutClienteFilter, setRutClienteFilter] = useState('');
   const [tipoOrdenFilter, setTipoOrdenFilter] = useState<string>('all');
@@ -181,6 +182,15 @@ export const CotizacionPage = () => {
         }
       }
 
+      // 1.1 Filtro por num_orden_compra
+      if (numOrdenCompraFilter.trim()) {
+        const queryOC = numOrdenCompraFilter.toLowerCase().trim();
+        const ocValor = (cot.num_orden_compra || '').toLowerCase();
+        if (!ocValor.includes(queryOC)) {
+          return false;
+        }
+      }
+
       // 2. Filtro por cliente (nombre y rut)
       const cliente = cot.cliente || clientesMap.get(cot.id_cliente);
       const nombreCliente = (cliente?.nombre || '').toLowerCase();
@@ -237,6 +247,7 @@ export const CotizacionPage = () => {
   }, [
     cotizaciones,
     numCotizacionFilter,
+    numOrdenCompraFilter,
     nombreClienteFilter,
     rutClienteFilter,
     tipoOrdenFilter,
@@ -303,7 +314,7 @@ export const CotizacionPage = () => {
           Filtros de Búsqueda
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3">
           {/* Filtro por num_cotizacion */}
           <div>
             <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
@@ -317,6 +328,23 @@ export const CotizacionPage = () => {
                 setCurrentPage(1);
               }}
               placeholder="Buscar num..."
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
+            />
+          </div>
+
+          {/* Filtro por num_orden_compra */}
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              N° Orden Compra
+            </label>
+            <input
+              type="text"
+              value={numOrdenCompraFilter}
+              onChange={(e) => {
+                setNumOrdenCompraFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar OC..."
               className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
             />
           </div>
@@ -452,10 +480,11 @@ export const CotizacionPage = () => {
       {/* 3. TABLA DE COTIZACIONES (fiel al boceto: num_cotizacion, tipo de orden, tipo, fecha_creacion, fecha_vencimiento, estado, acciones) */}
       <div className="bg-card rounded-2xl border border-border/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[950px]">
+          <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[1050px]">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
                 <th className="py-3 px-4 text-center">num_cotizacion</th>
+                <th className="py-3 px-4 text-center">num_orden_compra</th>
                 <th className="py-3 px-4 text-center">nombre (del cliente)</th>
                 <th className="py-3 px-4 text-center">rut (del cliente)</th>
                 <th className="py-3 px-4 text-center">tipo de orden</th>
@@ -469,7 +498,7 @@ export const CotizacionPage = () => {
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600" />
                       <span>Cargando cotizaciones...</span>
@@ -478,7 +507,7 @@ export const CotizacionPage = () => {
                 </tr>
               ) : paginatedCotizaciones.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No se encontraron cotizaciones con los filtros aplicados.
                   </td>
                 </tr>
@@ -498,6 +527,17 @@ export const CotizacionPage = () => {
                       {/* num_cotizacion */}
                       <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
                         {cot.num_cotizacion}
+                      </td>
+
+                      {/* num_orden_compra */}
+                      <td className="py-3.5 px-4 font-mono font-medium text-foreground text-center">
+                        {cot.num_orden_compra ? (
+                          <span className="inline-block px-2 py-0.5 rounded bg-muted/60 text-foreground font-mono text-xs border border-border/60">
+                            {cot.num_orden_compra}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </td>
 
                       {/* nombre (del cliente) */}
