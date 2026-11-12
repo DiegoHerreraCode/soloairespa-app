@@ -14,11 +14,26 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useReparaciones } from '../../hooks/useReparaciones';
+import { useQuery } from '@tanstack/react-query';
+import { getInventarioAction } from '../../actions/get-inventario.action';
 import type { ReparacionItem } from '../../interfaces/reparacion.interface';
+import type { InventarioItem } from '../../interfaces/inventario.interface';
 
 export const ReparacionPage = () => {
   const navigate = useNavigate();
   const { reparaciones, repuestos, ordenes, isLoading } = useReparaciones();
+
+  // Catálogo de inventario para obtener la descripción/nombre del repuesto asociado
+  const { data: inventario = [] } = useQuery<InventarioItem[]>({
+    queryKey: ['inventario-catalogo'],
+    queryFn: getInventarioAction,
+  });
+
+  const inventarioMap = useMemo(() => {
+    const map = new Map<number, InventarioItem>();
+    inventario.forEach((inv) => map.set(inv.id_inventario, inv));
+    return map;
+  }, [inventario]);
 
   // Opciones de filtrado por id_reparacion, id_orden, asociación a orden, cliente (nombre/rut), estado, fecha desde y fecha hasta
 
@@ -310,6 +325,7 @@ export const ReparacionPage = () => {
                 <th className="py-3 px-4 text-center">id_reparacion</th>
                 <th className="py-3 px-4 text-center">id_orden</th>
                 <th className="py-3 px-4 text-center">Cliente (Nombre / RUT)</th>
+                <th className="py-3 px-4 text-center">Equipo / Repuesto</th>
                 <th className="py-3 px-4 text-center">service_tag</th>
                 <th className="py-3 px-4 text-center">estado</th>
                 <th className="py-3 px-4 text-center">fecha inicio</th>
@@ -320,7 +336,7 @@ export const ReparacionPage = () => {
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                       Cargando listado de reparaciones...
@@ -329,7 +345,7 @@ export const ReparacionPage = () => {
                 </tr>
               ) : paginatedReparaciones.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-muted-foreground">
                     <Wrench className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
                     No se encontraron reparaciones con los filtros seleccionados
                   </td>
@@ -338,6 +354,10 @@ export const ReparacionPage = () => {
                 paginatedReparaciones.map((reparacion: ReparacionItem) => {
                   const repuestoAsociado = repuestosMap.get(reparacion.id_repuesto);
                   const serviceTag = repuestoAsociado?.service_tag || (repuestoAsociado?.serial ? `Serial: ${repuestoAsociado.serial}` : 'N/A');
+                  const itemInventario = repuestoAsociado?.id_inventario
+                    ? inventarioMap.get(repuestoAsociado.id_inventario)
+                    : undefined;
+                  const nombreEquipo = itemInventario?.nombre || repuestoAsociado?.inventario?.nombre || '-';
                   const isEnProceso = reparacion.estado === 'en_proceso';
 
                   const ordenAsociada = reparacion.id_orden
@@ -377,6 +397,13 @@ export const ReparacionPage = () => {
                         ) : (
                           <span className="text-muted-foreground italic text-xs">Sin orden asociada</span>
                         )}
+                      </td>
+
+                      {/* Equipo / Repuesto (descripción de inventario) */}
+                      <td className="py-3.5 px-4 text-center font-medium text-foreground">
+                        <span className="inline-block max-w-[200px] truncate" title={nombreEquipo}>
+                          {nombreEquipo}
+                        </span>
                       </td>
 
                       {/* service_tag */}

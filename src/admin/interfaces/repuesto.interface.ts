@@ -1,3 +1,5 @@
+import type { InventarioItem } from './inventario.interface';
+
 export interface RepuestoItem {
   id_repuesto: number;
   id_inventario: number;
@@ -12,4 +14,5 @@ export interface RepuestoItem {
   costo_reparacion_base?: number | string;
   costo_total?: number | string;
   costo_reparacion_con_ganancia?: number | string;
+  inventario?: InventarioItem;
 }

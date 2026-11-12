@@ -673,6 +673,10 @@ export const ReparacionFormPage = () => {
 
   // Identificador visual del repuesto
   const repuestoObj = idRepuesto ? repuestosMap.get(Number(idRepuesto)) : null;
+  const itemInventarioRepuesto = repuestoObj?.id_inventario
+    ? inventarioMap.get(repuestoObj.id_inventario)
+    : undefined;
+  const nombreEquipoRepuesto = itemInventarioRepuesto?.nombre || repuestoObj?.inventario?.nombre;
   const adminInicioObj = idAdminInicio ? adminsMap.get(Number(idAdminInicio)) : null;
   const adminFinObj = idAdminFin ? adminsMap.get(Number(idAdminFin)) : null;
 
@@ -713,10 +717,10 @@ export const ReparacionFormPage = () => {
         </div>
       </div>
 
-      {/* 2. ENCABEZADO: service_tag/id_repuesto, estado, admin/fecha inicio, admin/fecha fin */}
+      {/* 2. ENCABEZADO: service_tag/id_repuesto, equipo/modelo, estado, admin/fecha inicio, admin/fecha fin */}
       <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-4">
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${idOrden && clienteAsociado ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 text-xs sm:text-sm`}>
-          {/* service_tag / id_repuesto */}
+          {/* service_tag / id_repuesto y descripción del equipo */}
           <div className="p-3 bg-accent/40 rounded-xl space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
               service_tag, id_repuesto
@@ -725,24 +729,33 @@ export const ReparacionFormPage = () => {
               <SearchableSelect
                 options={repuestosDisponiblesParaReparar.map((r) => {
                   const tag = r.service_tag || (r.serial ? `Serial: ${r.serial}` : 'Sin tag');
+                  const itemInv = r.id_inventario ? inventarioMap.get(r.id_inventario) : undefined;
+                  const desc = itemInv ? `${itemInv.nombre} - ` : '';
                   return {
                     value: r.id_repuesto,
-                    label: `Repuesto #${r.id_repuesto}`,
+                    label: `${desc}Repuesto #${r.id_repuesto}`,
                     sublabel: tag,
                     badge: r.estado,
-                    searchTerms: `${r.id_repuesto} ${tag} ${r.serial || ''} ${r.service_tag || ''}`,
+                    searchTerms: `${r.id_repuesto} ${tag} ${desc} ${r.serial || ''} ${r.service_tag || ''}`,
                   };
                 })}
                 value={idRepuesto}
                 onChange={(val) => handleSelectRepuesto(val ? String(val) : '')}
                 placeholder="-- Seleccionar Repuesto --"
-                searchPlaceholder="Buscar por ID repuesto o service tag..."
+                searchPlaceholder="Buscar por ID repuesto, equipo o service tag..."
                 required
               />
             ) : (
-              <span className="text-sm font-bold text-foreground font-mono block">
-                {repuestoObj?.service_tag || 'Sin service tag'} (#{idRepuesto})
-              </span>
+              <div>
+                <span className="text-sm font-bold text-foreground font-mono block">
+                  {repuestoObj?.service_tag || 'Sin service tag'} (#{idRepuesto})
+                </span>
+                {nombreEquipoRepuesto && (
+                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 block mt-0.5">
+                    {nombreEquipoRepuesto}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 

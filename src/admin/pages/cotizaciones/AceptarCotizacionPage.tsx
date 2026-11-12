@@ -624,7 +624,7 @@ export const AceptarCotizacionPage: React.FC = () => {
               <Wrench className="w-5 h-5 shrink-0 mt-0.5" />
               <div className="text-xs sm:text-sm leading-relaxed">
                 <span className="font-bold">Aceptación de Reparación:</span> Los equipos, números de serie y service tags
-                fueron configurados al momento de crear la cotización. Indique la fecha estimada de entrega para generar la orden de reparación oficial.
+                fueron configurados al momento de crear la cotización. Indique la fecha estimada de entrega para generar la orden de reparación.
               </div>
             </div>
 
