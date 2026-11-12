@@ -8,29 +8,36 @@ import {
   Plus,
   XCircle,
   Loader2,
-  FileText
+  FileText,
+  Mail,
 } from 'lucide-react';
 
 import { getClientesAction } from '@/admin/actions/get-clientes.action';
 import { getInventarioAction } from '@/admin/actions/get-inventario.action';
 import { getTiposOrdenesAction } from '@/admin/actions/get-tipos-ordenes.action';
-import { createCotizacionAction } from '@/admin/actions/create-cotizacion.action';
+import { getRepuestosAction } from '@/admin/actions/get-repuestos.action';
+import {
+  createCotizacionAction,
+  type CreateCotizacionVentaPayload,
+} from '@/admin/actions/create-cotizacion.action';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateClienteModal } from '@/admin/components/clientes/QuickCreateClienteModal';
 
 import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
 import type { TipoOrdenItem } from '@/admin/interfaces/tipo-orden.interface';
+import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
 
 // Estructura de cada fila de venta en la tabla
 export interface LineaVentaFila {
   id_inventario: number;
   tipo: 'compresor' | 'valvula' | 'insumo';
+  condicion: string;
   sku: string;
   nombre: string;
   cantidad: number;
+  stock_disponible: number;
   costo_unitario: number;
-  monto_total_linea: number;
   porcentaje_ganancia: number;
   costo_unitario_con_ganancia: number;
   monto_total_linea_con_ganancia: number;
@@ -42,35 +49,42 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // 1. Clientes
+  // 1. Cargar Clientes
   const { data: clientes = [], isLoading: isLoadingClientes } = useQuery<ClienteItem[]>({
     queryKey: ['clientes-listado'],
     queryFn: getClientesAction,
   });
 
-  // 2. Inventario (filtrado: solo compresor, valvula o insumo)
+  // 2. Cargar Catálogo de Inventario
   const { data: inventario = [], isLoading: isLoadingInventario } = useQuery<InventarioItem[]>({
     queryKey: ['inventario-catalogo'],
     queryFn: getInventarioAction,
   });
 
-  // 3. Tipos de Órdenes (para resolver id_tipo_orden correspondiente a 'venta')
+  // 3. Cargar Tipos de Órdenes
   const { data: tiposOrdenes = [], isLoading: isLoadingTiposOrdenes } = useQuery<TipoOrdenItem[]>({
     queryKey: ['tipos-ordenes'],
     queryFn: getTiposOrdenesAction,
   });
 
-  // Estado del cliente seleccionado
+  // 4. Cargar Repuestos Físicos en Stock
+  const { data: repuestos = [], isLoading: isLoadingRepuestos } = useQuery<RepuestoItem[]>({
+    queryKey: ['repuestos-stock'],
+    queryFn: getRepuestosAction,
+  });
+
+  // Estado del cliente seleccionado y correo destino
   const [idCliente, setIdCliente] = useState<number | ''>('');
+  const [correoDestino, setCorreoDestino] = useState<string>('');
   const [isQuickClienteOpen, setIsQuickClienteOpen] = useState(false);
 
-  // Filas de venta seleccionadas
+  // Filas de venta en la tabla
   const [lineasVenta, setLineasVenta] = useState<LineaVentaFila[]>([]);
 
   // Búsqueda en sidebar por SKU o nombre
   const [busquedaSku, setBusquedaSku] = useState('');
 
-  // Catálogo disponible: solo compresor, valvula o insumo
+  // Catálogo permitido para venta: solo compresor, valvula o insumo
   const inventarioPermitido = useMemo(() => {
     return inventario.filter((item) => {
       const t = item.tipo;
@@ -82,6 +96,29 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
   const inventarioMap = useMemo(() => {
     return new Map<number, InventarioItem>(inventarioPermitido.map((i) => [i.id_inventario, i]));
   }, [inventarioPermitido]);
+
+  // Stock disponible para venta por ítem de inventario:
+  const getStockDisponibleParaVenta = (itemInv: InventarioItem): number => {
+    if (itemInv.tipo === 'insumo') {
+      return Math.max(0, Number(itemInv.cantidad_propia) || 0);
+    }
+
+    const condicion = (itemInv.condicion || '').toLowerCase().trim();
+    const repuestosItem = repuestos.filter(
+      (r) =>
+        r.id_inventario === itemInv.id_inventario &&
+        r.propietario === true &&
+        (r.id_orden_salida === null || r.id_orden_salida === undefined)
+    );
+
+    if (condicion === 'nuevo') {
+      return repuestosItem.filter((r) => r.estado === 'nuevo').length;
+    } else if (condicion === 'usado') {
+      return repuestosItem.filter((r) => r.estado === 'reparado').length;
+    } else {
+      return repuestosItem.filter((r) => r.estado === 'nuevo' || r.estado === 'reparado').length;
+    }
+  };
 
   // Ítems filtrados en el sidebar según la búsqueda
   const itemsFiltradosSidebar = useMemo(() => {
@@ -97,8 +134,19 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
   // Resolución del id_tipo_orden de 'venta'
   const idTipoOrdenVenta = useMemo(() => {
     const tipo = tiposOrdenes.find((t) => t.nombre.toLowerCase().trim() === 'venta');
-    return tipo ? tipo.id_tipo_orden : 1; // Fallback al id 1 si coincide
+    return tipo ? tipo.id_tipo_orden : 1;
   }, [tiposOrdenes]);
+
+  // Manejar cambio de cliente y precarga de correo
+  const handleClienteChange = (nuevoId: number | '') => {
+    setIdCliente(nuevoId);
+    if (nuevoId) {
+      const cli = clientes.find((c) => c.id_cliente === nuevoId);
+      setCorreoDestino(cli?.correo || '');
+    } else {
+      setCorreoDestino('');
+    }
+  };
 
   // ==========================================
   // CÁLCULOS MATEMÁTICOS DE LÍNEAS
@@ -148,14 +196,12 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
           : costoUnit;
     }
 
-    const montoTotalLinea = Number((cantidad * costoUnit).toFixed(2));
     const montoTotalLineaConGan = Number((cantidad * costoConGan).toFixed(2));
     const pctIva = Number(itemInv.porcentaje_iva !== undefined ? itemInv.porcentaje_iva : 19);
     const montoIva = Number((montoTotalLineaConGan * (pctIva / 100)).toFixed(2));
 
     return {
       costo_unitario: costoUnit,
-      monto_total_linea: montoTotalLinea,
       porcentaje_ganancia: pctGan,
       costo_unitario_con_ganancia: costoConGan,
       monto_total_linea_con_ganancia: montoTotalLineaConGan,
@@ -172,13 +218,21 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
       return;
     }
 
+    const stockDisp = getStockDisponibleParaVenta(itemInv);
+    if (stockDisp <= 0) {
+      toast.warning(`No hay stock disponible para la venta de "${itemInv.nombre}"`);
+      return;
+    }
+
     const calculos = calcularValoresLinea(itemInv, 1);
     const nuevaFila: LineaVentaFila = {
       id_inventario: itemInv.id_inventario,
       tipo: itemInv.tipo as 'compresor' | 'valvula' | 'insumo',
+      condicion: itemInv.condicion || 'nuevo',
       sku: itemInv.sku || 'N/A',
       nombre: itemInv.nombre,
       cantidad: 1,
+      stock_disponible: stockDisp,
       ...calculos,
     };
 
@@ -197,15 +251,30 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
       const itemInv = inventarioMap.get(target.id_inventario);
       if (!itemInv) return prev;
 
-      const nuevaCantidad = campo === 'cantidad' ? Math.max(1, valor) : target.cantidad;
-      const nuevoPctGan = campo === 'porcentaje_ganancia' ? Math.max(0, Math.min(99.99, valor)) : undefined;
-      const nuevoCostoConGan = campo === 'costo_unitario_con_ganancia' ? Math.max(0, valor) : undefined;
+      const nuevaCantidad =
+        campo === 'cantidad'
+          ? Math.max(1, Math.min(target.stock_disponible > 0 ? target.stock_disponible : 1, valor))
+          : target.cantidad;
+
+      const nuevoPctGan =
+        campo === 'porcentaje_ganancia'
+          ? Math.max(0, Math.min(99.99, valor))
+          : undefined;
+
+      const nuevoCostoConGan =
+        campo === 'costo_unitario_con_ganancia'
+          ? Math.max(0, valor)
+          : undefined;
 
       const nuevosCalculos = calcularValoresLinea(
         itemInv,
         nuevaCantidad,
-        target.costo_unitario, // costo_unitario se mantiene fijo
-        nuevoPctGan !== undefined ? nuevoPctGan : (campo === 'costo_unitario_con_ganancia' ? undefined : target.porcentaje_ganancia),
+        target.costo_unitario,
+        nuevoPctGan !== undefined
+          ? nuevoPctGan
+          : campo === 'costo_unitario_con_ganancia'
+            ? undefined
+            : target.porcentaje_ganancia,
         nuevoCostoConGan
       );
 
@@ -252,7 +321,7 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
 
   // Mutación para crear la cotización
   const createMutation = useMutation({
-    mutationFn: createCotizacionAction,
+    mutationFn: (payload: CreateCotizacionVentaPayload) => createCotizacionAction(payload),
     onSuccess: (cotCreada) => {
       toast.success(
         `Cotización ${cotCreada?.num_cotizacion ? '#' + cotCreada.num_cotizacion : ''} creada exitosamente.`
@@ -280,9 +349,16 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
       return;
     }
 
-    // Estructuración del payload según la especificación exacta:
-    // Si el tipo es 'insumo', se envía como id_inventario_insumo_saliente
-    // Si el tipo es 'compresor' o 'valvula', se envía como id_inventario_repuesto_saliente
+    // Validar que ninguna línea supere el stock disponible
+    for (const l of lineasVenta) {
+      if (l.cantidad > l.stock_disponible) {
+        toast.error(
+          `La cantidad solicitada (${l.cantidad}) para "${l.nombre}" supera el stock disponible (${l.stock_disponible})`
+        );
+        return;
+      }
+    }
+
     const detalles_inventario = lineasVenta.map((l) => {
       const esInsumo = l.tipo === 'insumo';
 
@@ -296,16 +372,18 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
       };
     });
 
-    const payload = {
+    const payload: CreateCotizacionVentaPayload = {
       id_cliente: Number(idCliente),
       id_tipo_orden: Number(idTipoOrdenVenta),
+      correo_destino: correoDestino.trim() || undefined,
       detalles_inventario,
     };
 
     createMutation.mutate(payload);
   };
 
-  const isLoadingGlobal = isLoadingClientes || isLoadingInventario || isLoadingTiposOrdenes;
+  const isLoadingGlobal =
+    isLoadingClientes || isLoadingInventario || isLoadingTiposOrdenes || isLoadingRepuestos;
 
   if (isLoadingGlobal) {
     return (
@@ -342,34 +420,55 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* 2. SELECTOR DE CLIENTE (boceto) */}
-        <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2 max-w-lg">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Seleccione al Cliente <span className="text-rose-500">*</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => setIsQuickClienteOpen(true)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Nuevo Cliente
-            </button>
+        {/* 2. SELECTOR DE CLIENTE Y CORREO DESTINO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+          {/* Selector de Cliente */}
+          <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Seleccione al Cliente <span className="text-rose-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsQuickClienteOpen(true)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Nuevo Cliente
+              </button>
+            </div>
+            <SearchableSelect
+              options={clientes.map((c) => ({
+                value: c.id_cliente,
+                label: c.nombre,
+                sublabel: c.rut ? `RUT: ${c.rut}` : undefined,
+                searchTerms: `${c.rut || ''} ${c.nombre} ${c.correo || ''}`,
+              }))}
+              value={idCliente}
+              onChange={(val) => handleClienteChange(val ? Number(val) : '')}
+              placeholder="-- Seleccione al Cliente --"
+              searchPlaceholder="Buscar por nombre o RUT..."
+              required
+            />
           </div>
-          <SearchableSelect
-            options={clientes.map((c) => ({
-              value: c.id_cliente,
-              label: c.nombre,
-              sublabel: c.rut ? `RUT: ${c.rut}` : undefined,
-              searchTerms: `${c.rut || ''}`,
-            }))}
-            value={idCliente}
-            onChange={(val) => setIdCliente(val ? Number(val) : '')}
-            placeholder="-- Seleccione al Cliente --"
-            searchPlaceholder="Buscar por nombre o RUT..."
-            required
-          />
+
+          {/* Input Correo Destinatario para el PDF de Cotización */}
+          <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-blue-500" />
+              Correo Destinatario para PDF de Cotización
+            </label>
+            <input
+              type="email"
+              value={correoDestino}
+              onChange={(e) => setCorreoDestino(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-mono"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Se precarga el correo del cliente. Puede editarlo si desea enviarlo a otro destinatario.
+            </p>
+          </div>
         </div>
 
         {/* 3. LÍNEAS DE VENTA Y SIDEBAR DE BÚSQUEDA */}
@@ -383,18 +482,18 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* Tabla de Líneas de Venta */}
             <div className="lg:col-span-9 bg-card rounded-2xl border border-border/80 shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[850px]">
+                <table className="w-full text-left text-xs border-collapse min-w-[850px]">
                   <thead>
-                    <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
+                    <tr className="border-b border-border/80 bg-muted/40 text-muted-foreground font-semibold text-[11px]">
                       <th className="py-2.5 px-3 text-center">sku</th>
                       <th className="py-2.5 px-3 text-center">nombre</th>
+                      <th className="py-2.5 px-3 text-center">condicion</th>
+                      <th className="py-2.5 px-3 text-center">stock disponible para venta</th>
                       <th className="py-2.5 px-3 text-center">cantidad</th>
-                      <th className="py-2.5 px-3 text-center">costo unitario</th>
-                      <th className="py-2.5 px-3 text-center">monto total linea</th>
                       <th className="py-2.5 px-3 text-center">porcentaje de ganancia</th>
                       <th className="py-2.5 px-3 text-center">costo unitario con ganancia</th>
                       <th className="py-2.5 px-3 text-center">monto total linea con ganancia</th>
@@ -406,8 +505,8 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                   <tbody className="divide-y divide-border/60">
                     {lineasVenta.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="py-8 text-center text-muted-foreground text-xs">
-                          No hay líneas de venta agregadas. Selecciona ítems desde el panel lateral.
+                        <td colSpan={11} className="py-10 text-center text-muted-foreground text-xs">
+                          No hay líneas de venta agregadas. Selecciona ítems desde el panel lateral derecho.
                         </td>
                       </tr>
                     ) : (
@@ -419,8 +518,35 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                           </td>
 
                           {/* nombre */}
-                          <td className="py-2.5 px-3 font-medium text-foreground text-xs max-w-[180px] truncate" title={linea.nombre}>
+                          <td
+                            className="py-2.5 px-3 font-medium text-foreground text-xs max-w-[170px] truncate"
+                            title={linea.nombre}
+                          >
                             {linea.nombre}
+                          </td>
+
+                          {/* condicion */}
+                          <td className="py-2.5 px-3 text-center">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${linea.condicion.toLowerCase() === 'usado'
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                }`}
+                            >
+                              {linea.condicion}
+                            </span>
+                          </td>
+
+                          {/* stock disponible para venta */}
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-xs">
+                            <span
+                              className={`px-2 py-0.5 rounded-full ${linea.stock_disponible > 0
+                                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                                }`}
+                            >
+                              {linea.stock_disponible}
+                            </span>
                           </td>
 
                           {/* cantidad */}
@@ -428,25 +554,19 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                             <input
                               type="number"
                               min={1}
+                              max={linea.stock_disponible > 0 ? linea.stock_disponible : undefined}
                               value={linea.cantidad}
                               onChange={(e) =>
                                 handleActualizarLinea(idx, 'cantidad', Number(e.target.value))
                               }
-                              className="w-16 px-1.5 py-1 text-xs text-center rounded border border-border/80 bg-background text-foreground font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className={`w-16 px-1.5 py-1 text-xs text-center rounded border bg-background font-semibold focus:outline-none focus:ring-1 ${linea.cantidad > linea.stock_disponible
+                                  ? 'border-rose-500 text-rose-600 focus:ring-rose-500'
+                                  : 'border-border/80 text-foreground focus:ring-blue-500'
+                                }`}
                             />
                           </td>
 
-                          {/* costo unitario (no editable) */}
-                          <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            ${Number(linea.costo_unitario).toFixed(2)}
-                          </td>
-
-                          {/* monto total linea */}
-                          <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            ${Number(linea.monto_total_linea).toFixed(2)}
-                          </td>
-
-                          {/* porcentaje de ganancia (editable) */}
+                          {/* porcentaje de ganancia */}
                           <td className="py-2.5 px-3 font-mono text-xs">
                             <div className="inline-flex items-center gap-1 justify-center">
                               <input
@@ -456,7 +576,11 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                                 step="any"
                                 value={linea.porcentaje_ganancia}
                                 onChange={(e) =>
-                                  handleActualizarLinea(idx, 'porcentaje_ganancia', Number(e.target.value))
+                                  handleActualizarLinea(
+                                    idx,
+                                    'porcentaje_ganancia',
+                                    Number(e.target.value)
+                                  )
                                 }
                                 className="w-16 px-1.5 py-1 text-xs text-right rounded border border-border/80 bg-background text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                               />
@@ -464,7 +588,7 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                             </div>
                           </td>
 
-                          {/* costo unitario con ganancia (editable) */}
+                          {/* costo unitario con ganancia */}
                           <td className="py-2.5 px-3 font-mono text-xs">
                             <div className="inline-flex items-center gap-1 justify-center">
                               <span className="text-muted-foreground text-xs">$</span>
@@ -491,7 +615,7 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                           </td>
 
                           {/* porcentaje de iva */}
-                          <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                          <td className="py-2.5 px-3 font-mono text-xs text-muted-foreground">
                             {Number(linea.porcentaje_iva).toFixed(1)}%
                           </td>
 
@@ -500,13 +624,13 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                             ${Number(linea.monto_iva).toFixed(2)}
                           </td>
 
-                          {/* acción remover */}
+                          {/* Botón eliminar fila */}
                           <td className="py-2.5 px-3 text-center">
                             <button
                               type="button"
                               onClick={() => handleRemoverLinea(idx)}
-                              className="p-1 rounded-md text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                              title="Remover línea"
+                              className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                              title="Eliminar ítem"
                             >
                               <XCircle className="w-4 h-4" />
                             </button>
@@ -561,6 +685,7 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                     const yaSeleccionado = lineasVenta.some(
                       (l) => l.id_inventario === item.id_inventario
                     );
+                    const stockDisp = getStockDisponibleParaVenta(item);
 
                     return (
                       <div
@@ -569,25 +694,20 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
                       >
                         <div className="truncate">
                           <span
-                            className={`font-semibold block truncate ${yaSeleccionado
-                              ? 'text-muted-foreground line-through'
-                              : 'text-foreground'
+                            className={`font-semibold block truncate ${yaSeleccionado ? 'text-muted-foreground line-through' : 'text-foreground'
                               }`}
                           >
                             {item.nombre}
                           </span>
-                          {/* colocar propieda que cuando el mouse este encima muestre todo el texto del div */}
                           <div
-                            className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono tooltip"
-                            title={`SKU: ${item.sku || 'N/A'} | Tipo: ${item.tipo || 'N/A'} | Condición: ${item.condicion || 'N/A'} | Stock: ${item.cantidad_propia || 'N/A'}`}
+                            className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono flex-wrap"
+                            title={`SKU: ${item.sku || 'N/A'} | Tipo: ${item.tipo || 'N/A'} | Condición: ${item.condicion || 'nuevo'} | Disp: ${stockDisp}`}
                           >
                             <span>SKU: {item.sku || 'N/A'}</span>
                             <span>•</span>
-                            <span>Tipo: {item.tipo}</span>
+                            <span className="capitalize">{item.condicion || 'nuevo'}</span>
                             <span>•</span>
-                            <span>Condición: {item.condicion}</span>
-                            <span>•</span>
-                            <span>Stock: {item.cantidad_propia}</span>
+                            <span className="font-semibold text-foreground">Disp: {stockDisp}</span>
                           </div>
                         </div>
 
@@ -667,7 +787,7 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
             {createMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Generando Cotización...
+                <span>Generando Cotización...</span>
               </>
             ) : (
               'Generar'
@@ -679,7 +799,7 @@ export const CotizacionInicialVentaFormPage: React.FC = () => {
       <QuickCreateClienteModal
         isOpen={isQuickClienteOpen}
         onClose={() => setIsQuickClienteOpen(false)}
-        onCreated={(nuevo) => setIdCliente(nuevo.id_cliente)}
+        onCreated={(nuevo) => handleClienteChange(nuevo.id_cliente)}
       />
     </div>
   );

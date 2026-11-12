@@ -13,6 +13,7 @@ export interface CreateCotizacionVentaDetallePayload {
 export interface CreateCotizacionVentaPayload {
   id_cliente: number;
   id_tipo_orden: number;
+  correo_destino?: string;
   detalles_inventario: CreateCotizacionVentaDetallePayload[];
 }
 

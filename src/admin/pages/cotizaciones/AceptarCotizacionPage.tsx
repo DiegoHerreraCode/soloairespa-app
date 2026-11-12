@@ -8,7 +8,6 @@ import {
   Calendar,
   Wrench,
   RefreshCw,
-  Info,
   Loader2,
   ShieldCheck,
   AlertTriangle,
@@ -59,8 +58,8 @@ export const AceptarCotizacionPage: React.FC = () => {
   // ESTADOS DEL FORMULARIO SEGÚN CASO
   // ==========================================
 
-  // CASO 1 (Venta): Asignación de repuestos físicos salientes { [lineIndex]: id_repuesto_saliente }
-  const [repuestosSalientesVenta, setRepuestosSalientesVenta] = useState<Record<number, number>>({});
+  // Estado para N° Orden de Compra (opcional)
+  const [numOrdenCompra, setNumOrdenCompra] = useState<string>('');
 
   // CASO 2 (Recambio): { [lineIndex]: { id_repuesto_saliente, serial_entrante, service_tag_entrante } }
   const [recambioDetalles, setRecambioDetalles] = useState<
@@ -111,36 +110,6 @@ export const AceptarCotizacionPage: React.FC = () => {
   const detallesInventario = useMemo(() => {
     return cotizacion?.detallesInventario || cotizacion?.detalles_inventario || [];
   }, [cotizacion]);
-
-  // Filtrado de líneas para Venta (sólo repuestos serializados: id_inventario_repuesto_saliente != null)
-  // Modelos expandidos por cada UNIDAD física (si una línea tiene cantidad: 2, se crean 2 selectores individuales)
-  interface ItemUnitarioVenta {
-    unitIndex: number;
-    lineIndex: number;
-    subIndex: number; // 1 de 2, etc.
-    id_inventario: number;
-    lineaOriginal: CotizacionDetalleInventarioItem;
-  }
-
-  const itemsVentaUnitarios = useMemo<ItemUnitarioVenta[]>(() => {
-    const items: ItemUnitarioVenta[] = [];
-    let currentIdx = 0;
-    detallesInventario.forEach((det, lineIdx) => {
-      if (det.id_inventario_repuesto_saliente !== null && det.id_inventario_repuesto_saliente !== undefined) {
-        const cant = Math.max(1, Number(det.cantidad) || 1);
-        for (let sub = 1; sub <= cant; sub++) {
-          items.push({
-            unitIndex: currentIdx++,
-            lineIndex: lineIdx,
-            subIndex: sub,
-            id_inventario: det.id_inventario_repuesto_saliente,
-            lineaOriginal: det,
-          });
-        }
-      }
-    });
-    return items;
-  }, [detallesInventario]);
 
   interface ItemUnitarioRecambio {
     unitIndex: number;
@@ -328,33 +297,18 @@ export const AceptarCotizacionPage: React.FC = () => {
 
     // CASO 0: Cotización Extra
     if (tipoCotizacion === 'extra') {
-      aceptarMutation.mutate({});
+      aceptarMutation.mutate({
+        num_orden_compra: numOrdenCompra.trim() || undefined,
+      });
       return;
     }
 
     // CASO 1: Venta Inicial
     if (tipoOrdenNombre === 'venta') {
-      const detallesPayload: Array<{ id_repuesto_saliente: number }> = [];
-
-      for (let i = 0; i < itemsVentaUnitarios.length; i++) {
-        const itemUnitario = itemsVentaUnitarios[i];
-        const idRepuesto = repuestosSalientesVenta[itemUnitario.unitIndex];
-        if (!idRepuesto) {
-          toast.warning(`Debes seleccionar el repuesto físico en bodega para la unidad #${itemUnitario.subIndex} de "${itemUnitario.lineaOriginal.inventarioRepuestoSaliente?.nombre || 'Repuesto'}"`);
-          return;
-        }
-        detallesPayload.push({ id_repuesto_saliente: Number(idRepuesto) });
-      }
-
-      // Validar repuestos duplicados seleccionados
-      const idsSet = new Set(detallesPayload.map((d) => d.id_repuesto_saliente));
-      if (idsSet.size !== detallesPayload.length) {
-        toast.warning('No puedes seleccionar el mismo repuesto físico en bodega en más de una unidad.');
-        return;
-      }
-
+      // El descuento y asignación de stock se realiza de forma automática por el sistema (FIFO),
+      // comportándose exactamente igual a la creación de una orden de venta.
       aceptarMutation.mutate({
-        detalles: detallesPayload,
+        num_orden_compra: numOrdenCompra.trim() || undefined,
       });
       return;
     }
@@ -405,6 +359,7 @@ export const AceptarCotizacionPage: React.FC = () => {
       }
 
       aceptarMutation.mutate({
+        num_orden_compra: numOrdenCompra.trim() || undefined,
         detalles: detallesPayload,
       });
       return;
@@ -442,6 +397,7 @@ export const AceptarCotizacionPage: React.FC = () => {
       }
 
       aceptarMutation.mutate({
+        num_orden_compra: numOrdenCompra.trim() || undefined,
         fecha_entrega_reparacion: fechaEntregaReparacion,
         repuestos_entrantes: repuestosEntrantesPayload,
       });
@@ -449,7 +405,9 @@ export const AceptarCotizacionPage: React.FC = () => {
     }
 
     // En caso de otro tipo no contemplado
-    aceptarMutation.mutate({});
+    aceptarMutation.mutate({
+      num_orden_compra: numOrdenCompra.trim() || undefined,
+    });
   };
 
   // Estados de carga generales
@@ -517,6 +475,24 @@ export const AceptarCotizacionPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* N° ORDEN DE COMPRA (GENERAL PARA CUALQUIER TIPO DE COTIZACIÓN) */}
+        <div className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-2">
+          <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+            N° Orden de Compra del Cliente
+            <span className="text-xs font-normal text-muted-foreground">(Opcional)</span>
+          </label>
+          <input
+            type="text"
+            value={numOrdenCompra}
+            onChange={(e) => setNumOrdenCompra(e.target.value)}
+            placeholder="Ej: OC-2026-9982"
+            className="w-full sm:max-w-md px-3.5 py-2 text-sm bg-background border border-input rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          />
+          <p className="text-xs text-muted-foreground">
+            Si el cliente emitió una orden de compra formal para autorizar esta cotización, ingrese su número aquí para dejar constancia.
+          </p>
+        </div>
+
         {/* ============================================================
             CASO 0: COTIZACIÓN EXTRA (DE REPARACIÓN)
             ============================================================ */}
@@ -541,96 +517,19 @@ export const AceptarCotizacionPage: React.FC = () => {
             CASO 1: COTIZACIÓN INICIAL DE VENTA
             ============================================================ */}
         {tipoCotizacion === 'inicial' && tipoOrdenNombre === 'venta' && (
-          <div className="space-y-4">
-            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex items-start gap-3 text-dark-700 dark:text-dark-300">
-              <Info className="w-5 h-5 shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm leading-relaxed">
-                <span className="font-bold">Asignación de Stock Físico:</span> Por cada unidad física de repuesto serializado
-                cotizado, selecciona el número de serie de bodega que se entregará al cliente.
+          <div className="bg-card p-6 rounded-2xl border border-blue-500/30 shadow-xs space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">Confirmación y Generación de Orden de Venta</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Al aceptar esta cotización, el sistema generará automáticamente la correspondiente orden de venta
+                  y descontará del stock disponible las unidades cotizadas siguiendo la regla FIFO, sin requerir asignación manual de piezas.
+                </p>
               </div>
             </div>
-
-            {itemsVentaUnitarios.length === 0 ? (
-              <div className="bg-card p-6 rounded-2xl border border-border/80 text-center text-muted-foreground text-sm">
-                Esta cotización solo contiene insumos o repuestos no serializados. Puedes proceder con la aceptación directamente.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {itemsVentaUnitarios.map((item) => {
-                  const idInventario = item.id_inventario;
-                  const repuestosDisponibles = repuestosDisponiblesPorInventario.get(idInventario) || [];
-                  const repuestoInfo =
-                    item.lineaOriginal.inventarioRepuestoSaliente ||
-                    item.lineaOriginal.inventario_repuesto_saliente ||
-                    inventario.find((i) => i.id_inventario === idInventario);
-
-                  const esMultiple = (Number(item.lineaOriginal.cantidad) || 1) > 1;
-
-                  return (
-                    <div
-                      key={item.unitIndex}
-                      className="bg-card p-4 sm:p-5 rounded-2xl border border-border/80 shadow-xs space-y-3"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs">
-                            {item.unitIndex + 1}
-                          </span>
-                          <span className="font-bold text-sm text-foreground">
-                            {repuestoInfo?.nombre || `Repuesto SKU #${idInventario}`}
-                          </span>
-                          {esMultiple && (
-                            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                              Unidad {item.subIndex} de {item.lineaOriginal.cantidad}
-                            </span>
-                          )}
-                          {repuestoInfo?.sku && (
-                            <span className="text-xs font-mono text-muted-foreground bg-accent px-2 py-0.5 rounded">
-                              {repuestoInfo.sku}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs font-semibold text-muted-foreground">
-                          Línea de Cotización
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Seleccionar Repuesto Físico en Bodega (Serial y Service Tag) <span className="text-rose-500">*</span>
-                        </label>
-                        {repuestosDisponibles.length === 0 ? (
-                          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 shrink-0" />
-                            No hay unidades físicas disponibles en taller para este modelo (propietario = propio, sin salida).
-                          </div>
-                        ) : (
-                          <select
-                            required
-                            value={repuestosSalientesVenta[item.unitIndex] || ''}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setRepuestosSalientesVenta((prev) => ({
-                                ...prev,
-                                [item.unitIndex]: val,
-                              }));
-                            }}
-                            className="w-full px-3 py-2 text-sm rounded-xl bg-background border border-border/80 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono"
-                          >
-                            <option value="">-- Seleccionar pieza física en bodega --</option>
-                            {repuestosDisponibles.map((r) => (
-                              <option key={r.id_repuesto} value={r.id_repuesto}>
-                                ID #{r.id_repuesto} | Serial: {r.serial || 'Sin serial'} | Tag: {r.service_tag || 'Sin tag'} ({r.estado})
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 

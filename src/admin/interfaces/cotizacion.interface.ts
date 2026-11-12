@@ -42,6 +42,7 @@ export interface CotizacionItem {
   id_tipo_orden: number;
   num_cotizacion_padre?: string | null;
   num_cotizacion: string;
+  num_orden_compra?: string | null;
   tipo: CotizacionTipo;
   monto_total_gravado?: number | string;
   monto_total_exento?: number | string;

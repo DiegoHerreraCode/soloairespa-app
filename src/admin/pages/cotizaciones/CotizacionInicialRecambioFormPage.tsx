@@ -80,7 +80,7 @@ export const CotizacionInicialRecambioFormPage: React.FC = () => {
       id_inventario_repuesto_entrante: '',
       cantidad: 1,
       precio_unitario: '',
-      monto_tasacion: '',
+      monto_tasacion: 0,
       porcentaje_iva: 19,
     },
   ]);
@@ -101,7 +101,7 @@ export const CotizacionInicialRecambioFormPage: React.FC = () => {
         id_inventario_repuesto_entrante: '',
         cantidad: 1,
         precio_unitario: '',
-        monto_tasacion: '',
+        monto_tasacion: 0,
         porcentaje_iva: 19,
       },
     ]);

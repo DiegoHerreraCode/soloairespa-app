@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -19,15 +19,29 @@ import { useCotizaciones } from '../../hooks/useCotizaciones';
 import { aceptarCotizacionAction } from '../../actions/aceptar-cotizacion.action';
 import { rechazarCotizacionAction } from '../../actions/rechazar-cotizacion.action';
 import { anularCotizacionAction } from '../../actions/anular-cotizacion.action';
+import { getClientesAction } from '../../actions/get-clientes.action';
 import type { CotizacionItem } from '../../interfaces/cotizacion.interface';
+import type { ClienteItem } from '../../interfaces/cliente.interface';
 
 export const CotizacionPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { cotizaciones, tiposOrdenes, isLoading } = useCotizaciones();
 
-  // Estados de filtros (fiel al boceto: num_cotizacion, tipo de orden, tipo, estado, fecha desde y fecha hasta)
+  // Clientes para mapeo y filtrado
+  const { data: clientes = [] } = useQuery<ClienteItem[]>({
+    queryKey: ['clientes-listado'],
+    queryFn: getClientesAction,
+  });
+
+  const clientesMap = useMemo(() => {
+    return new Map<number, ClienteItem>(clientes.map((c) => [c.id_cliente, c]));
+  }, [clientes]);
+
+  // Estados de filtros (num_cotizacion, nombre cliente, rut cliente, tipo de orden, tipo, estado, fecha desde y fecha hasta)
   const [numCotizacionFilter, setNumCotizacionFilter] = useState('');
+  const [nombreClienteFilter, setNombreClienteFilter] = useState('');
+  const [rutClienteFilter, setRutClienteFilter] = useState('');
   const [tipoOrdenFilter, setTipoOrdenFilter] = useState<string>('all');
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
@@ -96,16 +110,24 @@ export const CotizacionPage = () => {
 
   // Manejador del botón Aceptar
   const handleAceptarClick = (cot: CotizacionItem) => {
-    // Si es tipo 'extra' de reparación, el backend no requiere payload adicional
+    // Si es tipo 'extra' de reparación, solicitar num_orden_compra opcional antes de aceptar
     if (cot.tipo === 'extra') {
-      if (confirm(`¿Estás seguro de que deseas aceptar la cotización extra ${cot.num_cotizacion}? Los insumos y servicios se sumarán a la reparación.`)) {
-        aceptarMutation.mutate({ id: cot.id_cotizacion });
-      }
+      const oc = window.prompt(
+        `Aceptar cotización extra ${cot.num_cotizacion}.\nIngrese el N° Orden de Compra del cliente (opcional):`,
+        ''
+      );
+      if (oc === null) return; // cancelado por el usuario
+
+      aceptarMutation.mutate({
+        id: cot.id_cotizacion,
+        payload: {
+          num_orden_compra: oc.trim() || undefined,
+        },
+      });
       return;
     }
 
-    // Para cotizaciones iniciales (Venta, Recambio, Reparación), se requiere ingresar datos de seriales/repuestos
-    // Se redirige al componente dedicado de aceptación
+    // Para cotizaciones iniciales (Venta, Recambio, Reparación), se redirige al componente dedicado de aceptación
     navigate(`/admin/cotizaciones/${cot.id_cotizacion}/aceptar`);
   };
 
@@ -159,7 +181,24 @@ export const CotizacionPage = () => {
         }
       }
 
-      // 2. Filtro por tipo de orden
+      // 2. Filtro por cliente (nombre y rut)
+      const cliente = cot.cliente || clientesMap.get(cot.id_cliente);
+      const nombreCliente = (cliente?.nombre || '').toLowerCase();
+      const rutCliente = (cliente?.rut || '').toLowerCase();
+
+      if (nombreClienteFilter.trim()) {
+        if (!nombreCliente.includes(nombreClienteFilter.trim().toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (rutClienteFilter.trim()) {
+        if (!rutCliente.includes(rutClienteFilter.trim().toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 3. Filtro por tipo de orden
       if (tipoOrdenFilter !== 'all') {
         const nombreTipo = (
           cot.tipo_orden?.nombre ||
@@ -171,17 +210,17 @@ export const CotizacionPage = () => {
         }
       }
 
-      // 3. Filtro por tipo (inicial / extra)
+      // 4. Filtro por tipo (inicial / extra)
       if (tipoFilter !== 'all' && cot.tipo !== tipoFilter) {
         return false;
       }
 
-      // 4. Filtro por estado (pendiente, aceptada, rechazada, anulada)
+      // 5. Filtro por estado (pendiente, aceptada, rechazada, anulada)
       if (estadoFilter !== 'all' && cot.estado !== estadoFilter) {
         return false;
       }
 
-      // 5. Filtro por fechas (comparando con fecha_creacion)
+      // 6. Filtro por fechas (comparando con fecha_creacion)
       const fechaLimpia = cot.fecha_creacion
         ? cot.fecha_creacion.split('T')[0].split(' ')[0]
         : '';
@@ -198,12 +237,15 @@ export const CotizacionPage = () => {
   }, [
     cotizaciones,
     numCotizacionFilter,
+    nombreClienteFilter,
+    rutClienteFilter,
     tipoOrdenFilter,
     tipoFilter,
     estadoFilter,
     fechaDesde,
     fechaHasta,
     tiposOrdenesMap,
+    clientesMap,
   ]);
 
   // Ordenar el arreglo FilteredCotizaciones por el campo id_cotizacion de forma descendente
@@ -261,9 +303,12 @@ export const CotizacionPage = () => {
           Filtros de Búsqueda
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {/* Filtro por num_cotizacion */}
           <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Num. Cotización
+            </label>
             <input
               type="text"
               value={numCotizacionFilter}
@@ -271,22 +316,59 @@ export const CotizacionPage = () => {
                 setNumCotizacionFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Buscar por num_cotizacion..."
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-mono"
+              placeholder="Buscar num..."
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
+            />
+          </div>
+
+          {/* Nombre Cliente */}
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Nombre Cliente
+            </label>
+            <input
+              type="text"
+              value={nombreClienteFilter}
+              onChange={(e) => {
+                setNombreClienteFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Ej: Juan..."
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+          </div>
+
+          {/* RUT Cliente */}
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              RUT Cliente
+            </label>
+            <input
+              type="text"
+              value={rutClienteFilter}
+              onChange={(e) => {
+                setRutClienteFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Ej: 30433366..."
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             />
           </div>
 
           {/* Filtro por Tipo de Orden (Venta, Recambio, Reparación) */}
           <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Tipo de Orden
+            </label>
             <select
               value={tipoOrdenFilter}
               onChange={(e) => {
                 setTipoOrdenFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
             >
-              <option value="all">Tipo de Orden: Todos</option>
+              <option value="all">Todos</option>
               <option value="venta">Venta</option>
               <option value="reparacion">Reparación</option>
               <option value="recambio">Recambio</option>
@@ -295,15 +377,18 @@ export const CotizacionPage = () => {
 
           {/* Filtro por Tipo (Inicial / Extra) */}
           <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Tipo
+            </label>
             <select
               value={tipoFilter}
               onChange={(e) => {
                 setTipoFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
             >
-              <option value="all">Tipo: Todos</option>
+              <option value="all">Todos</option>
               <option value="inicial">Inicial</option>
               <option value="extra">Extra</option>
             </select>
@@ -311,15 +396,18 @@ export const CotizacionPage = () => {
 
           {/* Filtro por Estado (Pendiente, Aceptada, Rechazada, Anulada) */}
           <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Estado
+            </label>
             <select
               value={estadoFilter}
               onChange={(e) => {
                 setEstadoFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
             >
-              <option value="all">Estado: Todos</option>
+              <option value="all">Todos</option>
               <option value="pendiente">Pendiente</option>
               <option value="aceptada">Aceptada</option>
               <option value="rechazada">Rechazada</option>
@@ -328,8 +416,10 @@ export const CotizacionPage = () => {
           </div>
 
           {/* Fecha Desde */}
-          <div className="flex items-center gap-2 bg-background/50 border border-border/80 px-3 py-1.5 rounded-xl">
-            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Desde:</span>
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Desde
+            </label>
             <input
               type="date"
               value={fechaDesde}
@@ -337,13 +427,15 @@ export const CotizacionPage = () => {
                 setFechaDesde(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs sm:text-sm bg-transparent text-foreground focus:outline-none cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
             />
           </div>
 
           {/* Fecha Hasta */}
-          <div className="flex items-center gap-2 bg-background/50 border border-border/80 px-3 py-1.5 rounded-xl">
-            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Hasta:</span>
+          <div>
+            <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+              Hasta
+            </label>
             <input
               type="date"
               value={fechaHasta}
@@ -351,7 +443,7 @@ export const CotizacionPage = () => {
                 setFechaHasta(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full text-xs sm:text-sm bg-transparent text-foreground focus:outline-none cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-background border border-border/80 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 cursor-pointer"
             />
           </div>
         </div>
@@ -360,10 +452,12 @@ export const CotizacionPage = () => {
       {/* 3. TABLA DE COTIZACIONES (fiel al boceto: num_cotizacion, tipo de orden, tipo, fecha_creacion, fecha_vencimiento, estado, acciones) */}
       <div className="bg-card rounded-2xl border border-border/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[850px]">
+          <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[950px]">
             <thead>
               <tr className="border-b border-border/80 bg-muted/30 text-muted-foreground font-semibold">
                 <th className="py-3 px-4 text-center">num_cotizacion</th>
+                <th className="py-3 px-4 text-center">nombre (del cliente)</th>
+                <th className="py-3 px-4 text-center">rut (del cliente)</th>
                 <th className="py-3 px-4 text-center">tipo de orden</th>
                 <th className="py-3 px-4 text-center">tipo</th>
                 <th className="py-3 px-4 text-center">fecha_creacion</th>
@@ -375,7 +469,7 @@ export const CotizacionPage = () => {
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600" />
                       <span>Cargando cotizaciones...</span>
@@ -384,12 +478,13 @@ export const CotizacionPage = () => {
                 </tr>
               ) : paginatedCotizaciones.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     No se encontraron cotizaciones con los filtros aplicados.
                   </td>
                 </tr>
               ) : (
                 paginatedCotizaciones.map((cot: CotizacionItem) => {
+                  const cliente = cot.cliente || clientesMap.get(cot.id_cliente);
                   const nombreTipoOrden = (
                     cot.tipo_orden?.nombre ||
                     tiposOrdenesMap.get(cot.id_tipo_orden) ||
@@ -403,6 +498,16 @@ export const CotizacionPage = () => {
                       {/* num_cotizacion */}
                       <td className="py-3.5 px-4 font-mono font-bold text-foreground text-center">
                         {cot.num_cotizacion}
+                      </td>
+
+                      {/* nombre (del cliente) */}
+                      <td className="py-3.5 px-4 font-medium text-foreground text-center">
+                        {cliente?.nombre || '-'}
+                      </td>
+
+                      {/* rut (del cliente) */}
+                      <td className="py-3.5 px-4 font-mono text-muted-foreground text-center">
+                        {cliente?.rut || '-'}
                       </td>
 
                       {/* tipo de orden */}
