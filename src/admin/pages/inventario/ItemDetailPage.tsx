@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router';
+import { useParams, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
