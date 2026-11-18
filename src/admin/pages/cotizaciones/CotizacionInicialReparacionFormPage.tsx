@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -43,6 +43,7 @@ import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
 import type { ServicioTallerItem } from '@/admin/interfaces/servicio-taller.interface';
 import type { CreateOrdenReparacionInsumoPayload, CreateOrdenReparacionServicioPayload } from '@/admin/actions/create-orden.action';
 import { generarServiceTagUnico } from '@/admin/utils/service-tag-generator';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export interface RepuestoEntranteCotizacionFila {
   id: string; // id temporal único para control en React
@@ -55,7 +56,7 @@ export interface RepuestoEntranteCotizacionFila {
 }
 
 export const CotizacionInicialReparacionFormPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   // 1. Cargar Clientes
@@ -542,13 +543,14 @@ export const CotizacionInicialReparacionFormPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/cotizaciones/new/inicial"
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/cotizaciones/new/inicial")}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver
-        </Link>
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

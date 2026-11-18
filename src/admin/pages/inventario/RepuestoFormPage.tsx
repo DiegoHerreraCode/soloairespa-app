@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -19,8 +19,10 @@ import { getRepuestoByIdAction } from '../../actions/get-repuesto-by-id.action';
 import { getInventarioAction } from '../../actions/get-inventario.action';
 import { getComprasAction } from '../../actions/get-compras.action';
 import { getOrdenesAction } from '../../actions/get-ordenes.action';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const RepuestoFormPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
 
   // 1. Consulta del repuesto (solo lectura)
@@ -64,13 +66,14 @@ export const RepuestoFormPage = () => {
         <p className="text-xs text-muted-foreground">
           No existe ningún registro de repuesto con el identificador #{id}.
         </p>
-        <Link
-          to="/admin/inventario/repuestos"
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/inventario/repuestos")}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer"
+          >
           <ArrowLeft className="w-4 h-4" />
           Volver al listado
-        </Link>
+        </button>
       </div>
     );
   }
@@ -94,13 +97,14 @@ export const RepuestoFormPage = () => {
       {/* 1. Encabezado con Botón Volver y Badges de Estado */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/inventario/repuestos"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/inventario/repuestos")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Wrench className="w-6 h-6 text-blue-500" />

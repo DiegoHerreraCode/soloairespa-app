@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router';
+
 import {
   ArrowLeft,
   Search,
@@ -12,9 +12,10 @@ import {
 } from 'lucide-react';
 import { usePagosCompras } from '../../hooks/usePagosCompras';
 import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const PagoCompraPage = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const { pagosCompras, compras, proveedores, isLoading } = usePagosCompras();
 
   // Estados de filtrado: nombre, rut, id_compra, estado, fecha desde y fecha hasta
@@ -110,13 +111,14 @@ export const PagoCompraPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/compras"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/compras")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
         </div>
       </div>
 

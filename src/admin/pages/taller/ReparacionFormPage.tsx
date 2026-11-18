@@ -36,6 +36,7 @@ import { useReparacionMutation } from '../../hooks/useReparacionMutation';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { ServicioTallerItem } from '../../interfaces/servicio-taller.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 // Tipos para los ítems seleccionados en el formulario
 interface InsumoFila {
@@ -72,7 +73,7 @@ interface ServicioFila {
 
 export const ReparacionFormPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   const isCreating = !id || id === 'new';
@@ -731,13 +732,14 @@ export const ReparacionFormPage = () => {
             </button>
           )}
 
-          <Link
-            to="/admin/taller/reparaciones"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/taller/reparaciones")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
         </div>
       </div>
 

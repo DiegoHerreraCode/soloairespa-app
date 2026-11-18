@@ -15,9 +15,10 @@ import { toast } from 'sonner';
 import { getInventarioAction } from '../../actions/get-inventario.action';
 import { exportInventarioExcelAction } from '../../actions/export-inventario-excel.action';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ItemPage = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
 
   // Consulta de ítems de inventario
   const { data: items = [], isLoading } = useQuery({
@@ -126,13 +127,14 @@ export const ItemPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/inventario"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/inventario")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <Link
             to="/admin/inventario/items/new"
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"

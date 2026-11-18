@@ -33,10 +33,11 @@ import { getInventarioProveedoresAction } from '../../actions/get-inventario-pro
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
 import type { EquipoItem } from '../../interfaces/equipo.interface';
 import type { InventarioProveedorItem } from '../../interfaces/inventario-proveedor.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ItemDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
 
   // 1. Cargar ítem de inventario
   const { data: itemData, isLoading: isLoadingItem } = useQuery({
@@ -251,13 +252,14 @@ export const ItemDetailPage = () => {
         <p className="text-xs text-muted-foreground">
           No existe ningún ítem de inventario con el identificador #{id}.
         </p>
-        <Link
-          to="/admin/inventario/items"
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/inventario/items")}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer"
+          >
           <ArrowLeft className="w-4 h-4" />
           Volver al listado
-        </Link>
+        </button>
       </div>
     );
   }
@@ -267,13 +269,14 @@ export const ItemDetailPage = () => {
       {/* 1. Encabezado con Botón Volver y Botón Editar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/inventario/items"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/inventario/items")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Package className="w-6 h-6 text-blue-500" />

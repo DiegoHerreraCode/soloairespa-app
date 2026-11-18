@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,7 @@ import {
   type InsumoDevueltoPayload,
 } from '../../actions/finalizar-reparacion.action';
 import { anularOrdenAction } from '../../actions/anular-orden.action';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 interface FilaInsumoDevolver {
   id_reparacion_insumo: number;
@@ -29,7 +30,7 @@ interface FilaInsumoDevolver {
 export const DevolverInsumosPage = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   // Determinar si es flujo de finalizar reparación o anular orden (preparado para cuando se integren órdenes)
@@ -241,13 +242,14 @@ export const DevolverInsumosPage = () => {
           </p>
         </div>
 
-        <Link
-          to={esAnulacionOrden ? '/admin/ordenes/listado' : '/admin/taller/reparaciones'}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
-        >
+        <button
+            type="button"
+            onClick={() => goBack(esAnulacionOrden ? '/admin/ordenes/listado' : '/admin/taller/reparaciones')}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver
-        </Link>
+        </button>
       </div>
 
       {/* 2. CAMPO OPCIONAL: INGRESE EL MOTIVO DE ANULACIÓN (Solo visible si es anulación de orden) */}

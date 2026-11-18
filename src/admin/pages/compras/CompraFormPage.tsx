@@ -31,6 +31,7 @@ import type { PagoCompraItem } from '../../interfaces/pago-compra.interface';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateProveedorModal } from '@/admin/components/compras/QuickCreateProveedorModal';
 import { QuickCreateItemModal } from '@/admin/components/inventario/QuickCreateItemModal';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 interface CartItem {
   id_inventario: number;
@@ -43,6 +44,7 @@ interface CartItem {
 }
 
 export const CompraFormPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
   const isCreating = !id || id === 'new';
 
@@ -606,13 +608,14 @@ export const CompraFormPage = () => {
         {/* Encabezado */}
         <div className="flex items-center justify-between pb-2 border-b border-border/80">
           <div className="flex items-center gap-3">
-            <Link
-              to="/admin/compras/listado"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
-            >
+            <button
+            type="button"
+            onClick={() => goBack("/admin/compras/listado")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
+          >
               <ArrowLeft className="h-4 w-4" />
               Volver
-            </Link>
+            </button>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <ShoppingBag className="w-6 h-6 text-blue-500" />
@@ -894,13 +897,14 @@ export const CompraFormPage = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/compras/listado"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/compras/listado")}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver
-        </Link>
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -1496,12 +1500,13 @@ export const CompraFormPage = () => {
 
         {/* 5. BOTÓN DE ACCIÓN / GUARDAR */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link
-            to="/admin/compras/listado"
-            className="px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-colors"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/compras/listado")}
+            className="px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             Cancelar
-          </Link>
+          </button>
           <button
             type="submit"
             disabled={isSavingNew}

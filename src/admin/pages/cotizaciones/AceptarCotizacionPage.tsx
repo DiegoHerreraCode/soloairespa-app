@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -16,10 +16,11 @@ import {
 import { getCotizacionByIdAction } from '@/admin/actions/get-cotizacion-by-id.action';
 import { aceptarCotizacionAction } from '@/admin/actions/aceptar-cotizacion.action';
 import type { CotizacionItem } from '@/admin/interfaces/cotizacion.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const AceptarCotizacionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   // 1. Cargar Cotización
@@ -145,13 +146,14 @@ export const AceptarCotizacionPage: React.FC = () => {
         <p className="text-sm text-muted-foreground">
           No se pudo encontrar la cotización con el identificador solicitado o fue eliminada.
         </p>
-        <Link
-          to="/admin/cotizaciones/listado"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/cotizaciones/listado")}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer"
+          >
           <ArrowLeft className="w-4 h-4" />
           Volver al Listado
-        </Link>
+        </button>
       </div>
     );
   }
@@ -179,13 +181,14 @@ export const AceptarCotizacionPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/cotizaciones/listado"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/cotizaciones/listado")}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver al Listado
-        </Link>
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -311,12 +314,13 @@ export const AceptarCotizacionPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Link
-              to="/admin/cotizaciones/listado"
-              className="flex-1 sm:flex-none text-center px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-background border border-border/80 hover:bg-accent text-foreground transition-all cursor-pointer"
-            >
+            <button
+            type="button"
+            onClick={() => goBack("/admin/cotizaciones/listado")}
+            className="flex-1 sm:flex-none text-center px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-background border border-border/80 hover:bg-accent text-foreground transition-all cursor-pointer"
+          >
               Cancelar
-            </Link>
+            </button>
 
             <button
               type="submit"

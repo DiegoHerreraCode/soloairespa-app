@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Layers, Building2, AlignLeft, Tag } from 'lucide-react';
@@ -8,8 +8,10 @@ import { getMarcasAction } from '../../actions/get-marcas.action';
 import { useModeloMutation } from '../../hooks/useModeloMutation';
 import { QuickCreateMarcaModal } from '@/admin/components/inventario/QuickCreateMarcaModal';
 import { Plus } from 'lucide-react';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ModeloFormPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
 
   // Si id === 'new', estamos creando; de lo contrario estamos editando
@@ -95,13 +97,14 @@ export const ModeloFormPage = () => {
       {/* 1. Encabezado con Botón Volver */}
       <div className="flex items-center justify-between pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/inventario/modelos"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/inventario/modelos")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Layers className="w-6 h-6 text-blue-500" />

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -21,6 +21,7 @@ import {
 } from '../../actions/inventario-reparacion-base.action';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { ServicioTallerItem } from '../../interfaces/servicio-taller.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 interface InsumoFilaBase {
   id_insumo: number;
@@ -50,6 +51,7 @@ interface ServicioFilaBase {
 }
 
 export const InventarioReparacionBasePage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
@@ -582,13 +584,14 @@ export const InventarioReparacionBasePage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to={`/admin/inventario/items/${id}/detalle`}
+          <button
+            type="button"
+            onClick={() => goBack(`/admin/inventario/items/${id}`)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver al Ítem
-          </Link>
+          </button>
         </div>
       </div>
 

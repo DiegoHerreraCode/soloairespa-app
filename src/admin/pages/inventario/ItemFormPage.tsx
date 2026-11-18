@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -34,8 +34,10 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { QuickCreateModeloModal } from '@/admin/components/inventario/QuickCreateModeloModal';
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
 import type { EquipoItem } from '../../interfaces/equipo.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ItemFormPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
 
   // Si id === 'new', estamos creando; de lo contrario estamos editando
@@ -397,13 +399,14 @@ export const ItemFormPage = () => {
       {/* 1. Encabezado con Botón Volver */}
       <div className="flex items-center justify-between pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/inventario/items"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/inventario/items")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Package className="w-6 h-6 text-blue-500" />

@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -26,8 +26,10 @@ import type { PagoClienteItem } from '../../interfaces/pago-cliente.interface';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { RepuestoItem } from '../../interfaces/repuesto.interface';
 import type { ReparacionItem } from '../../interfaces/reparacion.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const OrdenDetallePage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
 
   // 1. Consultar la Orden por ID
@@ -107,13 +109,14 @@ export const OrdenDetallePage = () => {
         <p className="text-sm text-muted-foreground">
           No fue posible encontrar la orden identificada con el número #{id}.
         </p>
-        <Link
-          to="/admin/ordenes/listado"
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/ordenes/listado")}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent cursor-pointer"
+          >
           <ArrowLeft className="w-4 h-4" />
           Volver al Listado de Órdenes
-        </Link>
+        </button>
       </div>
     );
   }
@@ -123,13 +126,14 @@ export const OrdenDetallePage = () => {
       {/* 1. BARRA SUPERIOR: Título + Botón Volver */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/ordenes/listado"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/ordenes/listado")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <ClipboardList className="w-6 h-6 text-blue-500" />

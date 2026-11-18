@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router';
+
 import {
   ArrowLeft,
   Filter,
@@ -15,8 +15,10 @@ import { useEquipos } from '../../hooks/useEquipos';
 import { deleteEquipoAction } from '../../actions/delete-equipo.action';
 import { recuperarEquipoAction } from '../../actions/recuperar-equipo.action';
 import type { EquipoItem } from '../../interfaces/equipo.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const EquipoPage = () => {
+  const { goBack } = useAppNavigation();
   const queryClient = useQueryClient();
   const { equipos, inventario, compras, isLoading } = useEquipos();
 
@@ -173,13 +175,14 @@ export const EquipoPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/inventario"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/inventario")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
         </div>
       </div>
 

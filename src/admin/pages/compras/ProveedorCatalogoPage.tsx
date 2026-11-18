@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -25,8 +25,10 @@ import {
 } from '../../actions/inventario-proveedor.action';
 import type { InventarioItem } from '../../interfaces/inventario.interface';
 import type { InventarioProveedorItem } from '../../interfaces/inventario-proveedor.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ProveedorCatalogoPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
   const idProveedor = Number(id);
   const queryClient = useQueryClient();
@@ -230,13 +232,14 @@ export const ProveedorCatalogoPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/compras/proveedores"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/compras/proveedores")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver a Proveedores
-          </Link>
+          </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"

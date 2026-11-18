@@ -20,9 +20,10 @@ import type { OrdenItem } from '../../interfaces/orden.interface';
 import type { ClienteItem } from '../../interfaces/cliente.interface';
 import type { TipoOrdenItem } from '../../interfaces/tipo-orden.interface';
 import type { ReparacionItem } from '../../interfaces/reparacion.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const OrdenPage = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   // 1. Cargar Órdenes y catálogos necesarios
@@ -246,13 +247,14 @@ export const OrdenPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/ordenes"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/ordenes")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <Link
             to="/admin/ordenes/new"
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"

@@ -14,9 +14,10 @@ import {
 } from 'lucide-react';
 import { useClientes } from '../../hooks/useClientes';
 import type { ClienteItem } from '../../interfaces/cliente.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ClientePage = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const { clientes, isLoading } = useClientes();
 
   // Estados de filtrado
@@ -72,13 +73,14 @@ export const ClientePage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/clientes"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/clientes")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <Link
             to="/admin/clientes/listado/new"
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 transition-all cursor-pointer"

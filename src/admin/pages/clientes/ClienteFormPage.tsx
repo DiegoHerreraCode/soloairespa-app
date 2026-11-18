@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Users } from 'lucide-react';
 import { getClienteByIdAction } from '../../actions/get-cliente-by-id.action';
 import { useClienteMutation } from '../../hooks/useClienteMutation';
 import type { CreateUpdateClientePayload } from '../../actions/create-update-cliente.action';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const ClienteFormPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
 
   // Si id === 'new', estamos creando; en cualquier otro caso estamos editando
@@ -83,13 +85,14 @@ export const ClienteFormPage = () => {
       {/* Encabezado con Botón Volver */}
       <div className="flex items-center justify-between pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/clientes/listado"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/clientes/listado")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Users className="w-6 h-6 text-emerald-500" />
@@ -190,12 +193,13 @@ export const ClienteFormPage = () => {
 
         {/* Botones de Cancelar y Guardar */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/80">
-          <Link
-            to="/admin/clientes/listado"
-            className="px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-colors"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/clientes/listado")}
+            className="px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             Cancelar
-          </Link>
+          </button>
           <button
             type="submit"
             disabled={isPending}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -26,6 +26,7 @@ import { QuickCreateItemModal } from '@/admin/components/inventario/QuickCreateI
 import type { ReparacionItem, ReparacionInsumoItem, ReparacionServicioTallerItem } from '@/admin/interfaces/reparacion.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
 import type { ServicioTallerItem } from '@/admin/interfaces/servicio-taller.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 // Fila de Insumo para Cotización Extra
 export interface InsumoExtraFila {
@@ -63,7 +64,7 @@ export interface ServicioExtraFila {
 }
 
 export const CotizacionExtraFormPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   // 1. Cargar Todas las Reparaciones
@@ -720,13 +721,14 @@ export const CotizacionExtraFormPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/cotizaciones/new"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/cotizaciones/new")}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver
-        </Link>
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

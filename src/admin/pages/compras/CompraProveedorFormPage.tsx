@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Building2, Package, Plus, Trash2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { getInventarioAction } from '../../actions/get-inventario.action';
 import { useProveedorMutation } from '../../hooks/useProveedorMutation';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CreateUpdateProveedorPayload } from '../../actions/create-update-proveedor.action';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 interface ItemFila {
   id_inventario: number | '';
@@ -16,6 +17,7 @@ interface ItemFila {
 }
 
 export const CompraProveedorFormPage = () => {
+  const { goBack } = useAppNavigation();
   const { id } = useParams<{ id: string }>();
 
   // Si id === 'new', estamos creando; en cualquier otro caso estamos editando
@@ -144,13 +146,14 @@ export const CompraProveedorFormPage = () => {
       {/* Encabezado con Botón Volver */}
       <div className="flex items-center justify-between pb-2 border-b border-border/80">
         <div className="flex items-center gap-3">
-          <Link
-            to="/admin/compras/proveedores"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/compras/proveedores")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Building2 className="w-6 h-6 text-blue-500" />
@@ -387,12 +390,13 @@ export const CompraProveedorFormPage = () => {
 
         {/* Acciones del Formulario */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/80">
-          <Link
-            to="/admin/compras/proveedores"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/compras/proveedores")}
             className="px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             Cancelar
-          </Link>
+          </button>
           <button
             type="submit"
             disabled={isPending}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -16,8 +16,10 @@ import { getServiciosTallerAction } from '../../actions/get-servicios-taller.act
 import { getPersonalAction } from '../../actions/get-personal.action';
 import { useAsignacionMutation } from '../../hooks/useAsignacionMutation';
 import type { PersonalItem } from '../../interfaces/personal.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const AsignarPersonalPage = () => {
+  const { goBack } = useAppNavigation();
   const { idReparacion, idReparacionServicio } = useParams<{
     idReparacion: string;
     idReparacionServicio: string;
@@ -158,13 +160,14 @@ export const AsignarPersonalPage = () => {
           </p>
         </div>
 
-        <Link
-          to={`/admin/taller/reparaciones/${idReparacion}`}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
-        >
+        <button
+            type="button"
+            onClick={() => goBack(`/admin/taller/reparaciones/${idReparacion}`)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver
-        </Link>
+        </button>
       </div>
 
       {/* 2. SECCIÓN PRINCIPAL: LISTA DE EMPLEADOS SELECCIONADOS + SIDEBAR DE BÚSQUEDA */}

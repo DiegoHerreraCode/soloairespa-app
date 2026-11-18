@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -25,6 +25,7 @@ import type { ClienteItem } from '@/admin/interfaces/cliente.interface';
 import type { InventarioItem } from '@/admin/interfaces/inventario.interface';
 import type { TipoOrdenItem } from '@/admin/interfaces/tipo-orden.interface';
 import type { RepuestoItem } from '@/admin/interfaces/repuesto.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 // Estructura de cada fila de venta en la tabla
 export interface LineaVentaFila {
@@ -44,7 +45,7 @@ export interface LineaVentaFila {
 }
 
 export const OrdenVentaFormPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const queryClient = useQueryClient();
 
   // 1. Cargar Clientes
@@ -409,13 +410,14 @@ export const OrdenVentaFormPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/ordenes/new"
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
-        >
+        <button
+            type="button"
+            onClick={() => goBack("/admin/ordenes/new")}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer shrink-0"
+          >
           <ArrowLeft className="h-4 w-4" />
           Volver
-        </Link>
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -13,9 +13,10 @@ import {
 } from 'lucide-react';
 import { useCompras } from '../../hooks/useCompras';
 import type { CompraItem } from '../../interfaces/compra.interface';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 
 export const CompraPage = () => {
-  const navigate = useNavigate();
+  const { goBack, navigate } = useAppNavigation();
   const { compras, proveedores, isLoading } = useCompras();
 
   // Estados de filtrado: nombre, rut, id_compra, num_factura_boleta, estado, tipo_pago, fecha desde y fecha hasta
@@ -118,13 +119,14 @@ export const CompraPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
-            to="/admin/compras"
+          <button
+            type="button"
+            onClick={() => goBack("/admin/compras")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-card border border-border/80 text-foreground hover:bg-accent transition-all shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
-          </Link>
+          </button>
           <Link
             to="/admin/compras/listado/new"
             className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"
